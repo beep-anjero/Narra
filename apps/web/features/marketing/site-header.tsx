@@ -1,6 +1,7 @@
 "use client";
 
 import { Menu, X } from "lucide-react";
+import Link from "next/link";
 
 import { Brand } from "@/components/brand";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,7 @@ export function SiteHeader() {
     <header className="border-b border-border bg-background">
       <div className="page-container flex min-h-22 items-center justify-between gap-6">
         <Brand className="text-primary" />
-        <nav aria-label="Main navigation" className="hidden items-center gap-8 lg:flex">
+        <nav aria-label="Main navigation" className="hidden items-center gap-4 lg:flex xl:gap-8">
           {navigation.map((item) => (
             <a
               key={item.href}
@@ -32,7 +33,13 @@ export function SiteHeader() {
             </a>
           ))}
         </nav>
-        <div className="hidden sm:block">
+        <div className="hidden items-center gap-3 sm:flex">
+          <Link
+            href="/login"
+            className="hidden py-3 text-sm font-medium hover:text-primary lg:block"
+          >
+            Log in
+          </Link>
           <AnalysisCta />
         </div>
         <Sheet>
@@ -62,6 +69,11 @@ export function SiteHeader() {
               <SheetDescription>A clearer way to understand your data.</SheetDescription>
             </SheetHeader>
             <nav aria-label="Mobile navigation" className="flex flex-col gap-2 px-4">
+              <SheetClose asChild>
+                <Link href="/login" className="rounded-md px-3 py-4 font-medium hover:bg-secondary">
+                  Log in
+                </Link>
+              </SheetClose>
               {navigation.map((item) => (
                 <SheetClose asChild key={item.href}>
                   <a

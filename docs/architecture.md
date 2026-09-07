@@ -2,9 +2,10 @@
 
 ## Status
 
-Stages 1–2 establish a runnable Next.js frontend, marketing page, and repository conventions. Only
-`apps/web` is executable. The remaining directories reserve the requested structure;
-no authentication, analytics, storage, or database functionality is implemented yet.
+Stages 1–3 establish the frontend, marketing page, and Supabase authentication
+implementation. Only `apps/web` is executable. The initial profile migration is
+tested locally; hosted setup and real account verification await a Supabase project.
+Project CRUD, analytics, and CSV storage remain later-stage work.
 
 ## Planned service boundaries
 
@@ -47,9 +48,9 @@ and RLS will enforce user isolation when these integrations are implemented.
   ESLint 9 is pinned because the React lint plugin used by Next.js currently
   declares support through ESLint 9. The registry marks that major deprecated;
   upgrade once the plugin supports ESLint 10 rather than override peer constraints.
-- Environment variables in `.env.example` document future integration boundaries.
-  No variable is required or consumed in Stage 1. Next.js local configuration will
-  live in `apps/web/.env.local`; private keys must never use `NEXT_PUBLIC_`.
+- Environment variables in `.env.example` document integration boundaries.
+  Stage 3 consumes the two public Supabase settings from `apps/web/.env.local`;
+  private keys must never use `NEXT_PUBLIC_`.
 
 ## Frontend organization
 
@@ -68,23 +69,25 @@ and RLS will enforce user isolation when these integrations are implemented.
 ## Verification strategy
 
 Run `pnpm check` for formatting, lint, TypeScript, component tests, and a production
-build. Stage 2 introduces Vitest/React Testing Library with jsdom for dialog and
-mobile navigation interactions. pytest and Playwright remain later-stage work.
-Component tests do not claim browser layout or end-to-end verification.
+build. Vitest/React Testing Library cover forms and navigation. Node-based tests
+cover auth actions, confirmation, and route guards. PGlite executes the real SQL
+migration against PostgreSQL with minimal fixtures for Supabase's owned Auth schema.
+Provider mocks are confined to tests. Hosted Supabase and email delivery require
+separate live verification. pytest and Playwright remain later-stage work.
 
 ## Stage 2 boundaries
 
 - Marketing components live in `features/marketing`. The page composes sections;
   UI primitives and the reusable brand remain in `components`.
-- Only the header/drawer and availability dialogs need client behavior. Marketing
+- In Stage 2, only the header/drawer and availability dialogs needed client behavior. Marketing
   copy and the dashboard illustration render on the server.
 - Preview values live in a small, explicitly illustrative fixture. The SVG and
   category bars depict those values without introducing ECharts or an analytics
   implementation before their stages. An accessible table exposes exact monthly
   values; the chart scrolls within its card on small screens to keep labels legible.
-- Every navigation link targets a real section. The primary CTA explains current
-  availability in a dialog; the demo CTA points to the labeled static preview.
-  Auth, upload, data filtering, persistence, and an interactive demo remain deferred.
+- Stage 2 used an availability dialog for the primary CTA. Stage 3 connects it to
+  registration and adds login links. The demo CTA still points to the labeled
+  static preview; upload, filtering, persistence, and the working demo are deferred.
 - The theme uses restrained surfaces, responsive grids, visible focus styles,
   reduced-motion support, and accessible Radix dialog/drawer behavior.
 - The Next.js development server generates local `AGENTS.md` and `CLAUDE.md` files.
@@ -92,7 +95,42 @@ Component tests do not claim browser layout or end-to-end verification.
 - Deployment is outside the user's stage-by-stage scope. No hosting project,
   static-export conversion, or infrastructure change is introduced in Stage 2.
 
+## Stage 3 decisions
+
+- `features/auth` owns validation, provider-error translation, actions, form UI,
+  and the reusable `requireUser` guard. `lib/supabase` owns SDK configuration,
+  server cookie adapters, and request session refresh. Components do not call the
+  Supabase SDK directly.
+- Server Actions use Zod before contacting Supabase and preserve password whitespace.
+  Registration enforces eight characters and confirmation. Login accepts existing
+  shorter passwords; signup requirements do not unexpectedly lock out older accounts.
+- Next.js `proxy.ts` uses verified `getClaims()` to refresh and check sessions.
+  Refreshed/deleted cookies survive redirects and are forwarded to both server
+  rendering and the browser. Auth responses are private and not cached.
+- Protected server components independently call `getUser()` through a React
+  request-scoped cache. Proxy is not the sole authorization boundary. Future data
+  actions must call this guard themselves; a layout alone does not authorize them.
+- Cookie writes are enabled explicitly for actions and handlers. Server components
+  read cookies, relying on Proxy to persist refreshes. There is no broad catch that
+  silently discards failed cookie writes from login or logout.
+- Auth mutations use Next.js Server Actions with their same-origin protections;
+  logout is a form POST, never a GET endpoint. It ends the current browser session
+  and invalidates the router cache. No home-grown session or password store exists.
+- Return destinations are limited to same-origin dashboard/project paths. Email
+  templates use Supabase's configured Site URL. `/auth/confirm` supports only
+  signup email confirmation; OAuth can later be added at the isolated auth boundary.
+- `public.profiles` references `auth.users`, supports existing-user backfill, and
+  synchronizes emails via a security-definer trigger with an empty search path.
+  Authenticated clients have only owner-scoped SELECT; all profile writes are denied.
+  There are no user-editable profile fields yet, so no update policy is needed.
+- The only new database is a development-only embedded PostgreSQL test instance.
+  Application persistence remains Supabase. Project schemas, storage buckets, and
+  their ownership policies will be implemented in their respective stages.
+- Missing or invalid Supabase settings disable auth forms and redirect protected
+  requests to login. They never grant a mock session or weaken authorization.
+
 ## Next stage
 
-Stage 3: Supabase configuration, registration, login, logout, protected routes,
-and Row Level Security. Start only after explicit instruction.
+Connect Supabase and finish the live Stage 3 checklist in `docs/supabase-setup.md`.
+Stage 4 adds project management, migrations, and ownership policies after explicit
+instruction. No Stage 4 work has been started.
