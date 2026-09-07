@@ -6,9 +6,15 @@ Narra is a planned full-stack application that examines uploaded CSV datasets an
 recommends useful statistics, visualizations, and deterministic insights. The MVP
 will use rules and calculations, with no AI/LLM functionality.
 
-**Current status: Stage 1 foundation.** The monorepo, frontend configuration, and
-basic application shell are implemented. The marketing page, authentication,
-projects, uploads, analytics, charts, and persistence are not implemented yet.
+**Current status: Stage 2 landing page.** The monorepo, frontend tooling, branding,
+responsive marketing page, and reusable UI primitives are implemented.
+Authentication, projects, uploads, analytics, working dashboards, and persistence
+remain future stages.
+
+The landing page includes an explicitly labeled illustrative dashboard. **Try Demo
+Data** links to that preview; **Analyze a Dataset** opens an availability dialog.
+Neither action uploads a file or simulates a completed analysis. The real demo flow
+remains Stage 15.
 
 ## Implemented foundation
 
@@ -19,6 +25,11 @@ projects, uploads, analytics, charts, and persistence are not implemented yet.
 - pnpm workspace scripts, exact dependency versions, and lockfile.
 - ESLint with Next.js/TypeScript rules and Prettier formatting.
 - Environment example, Git ignore rules, and reserved application directories.
+- Narra wordmark and favicon, forest-green theme, and locally served Geist font.
+- Desktop navigation, accessible mobile drawer, hero, dashboard illustration,
+  How It Works, planned features, closing CTA, and footer.
+- shadcn Button, Card, Badge, Dialog, and Sheet primitives.
+- Vitest and React Testing Library tests for dialog and navigation behavior.
 
 ## Repository structure
 
@@ -73,7 +84,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open [localhost:3000](http://localhost:3000). Stage 1 requires no Supabase account,
+Open [localhost:3000](http://localhost:3000). The current frontend requires no Supabase account,
 Python installation, environment file, or other running service.
 
 To run a production build locally:
@@ -94,11 +105,17 @@ pnpm start
 | `pnpm typecheck`    | Generate Next.js route types and run strict TypeScript checks |
 | `pnpm format`       | Format supported source and documentation files               |
 | `pnpm format:check` | Check formatting without changing files                       |
-| `pnpm check`        | Check formatting, lint, types, then production build          |
+| `pnpm test`         | Run component interaction tests                               |
+| `pnpm test:watch`   | Run component tests in watch mode                             |
+| `pnpm check`        | Check formatting, lint, types, tests, and production build    |
 
-No automated feature test suite is installed in Stage 1. pytest, Vitest, React
-Testing Library, and Playwright will be introduced alongside the features they
-verify. Build and HTTP smoke checks verify the initial shell.
+Run `pnpm test` for the Vitest/React Testing Library suite, or `pnpm test:watch`
+during development. `pnpm check` also runs tests before the production build.
+The initial four component tests cover availability messaging, focus trapping,
+Escape dismissal, focus restoration, preview navigation, and mobile drawer closure.
+
+These tests use jsdom; they do not verify browser layout or replace future
+Playwright E2E tests. pytest and Playwright remain scheduled for later stages.
 
 ## Environment variables
 
@@ -115,7 +132,7 @@ are currently unused. When integrations are introduced, copy the web entries int
 | `MAX_DATASET_ROWS`                     | Analytics                | Maximum accepted row count                     |
 | `CORS_ORIGINS`                         | Analytics                | Allowed web origins                            |
 
-Local `.env` files are ignored by Git. No service-role key is needed for Stage 1.
+Local `.env` files are ignored by Git. No service-role key is needed for the current frontend.
 Never place private credentials in variables prefixed with `NEXT_PUBLIC_`.
 
 ## Architecture and planned stack
@@ -133,9 +150,10 @@ Supabase, and Python dependencies are intentionally deferred to their feature st
 
 Configuration is in `apps/web/components.json`, with theme tokens in
 `apps/web/app/globals.css` and the `cn` utility in `apps/web/lib/utils.ts`.
-The New York style is configured; no component catalog is generated yet.
+The New York style is configured. Button, Card, Badge, Dialog, and Sheet are installed
+and use the existing `cn` helper. Their source lives in `apps/web/components/ui`.
 
-In Stage 2, add individual components from the web directory as needed:
+Add additional components from the web directory only as needed:
 
 ```sh
 cd apps/web
@@ -154,23 +172,24 @@ $cliCache = Join-Path $env:USERPROFILE ".cache/narra-pnpm"
 pnpm --config.cacheDir="$cliCache" --config.enableGlobalVirtualStore=false dlx shadcn@4.21.0 info --cwd apps/web
 ```
 
-Use the same command with `add button` instead of `info` when adding that component
-in Stage 2. This changes only the CLI invocation, not global pnpm settings.
+Use the same command with `add <component>` instead of `info` when adding a new
+component. This changes only the CLI invocation, not global pnpm settings.
 
 Setup references: [Next.js ESLint configuration](https://nextjs.org/docs/app/api-reference/config/eslint)
 and [shadcn/ui installation](https://ui.shadcn.com/docs/installation/manual).
 
 See the [Stage 1 verification record](docs/stage-1-verification.md) for executed
-checks and resolved setup issues.
+foundation checks and resolved setup issues, and the
+[Stage 2 verification record](docs/stage-2-verification.md) for the landing page.
 
 ## Roadmap
 
 Work proceeds one stage at a time, with verification and a meaningful commit for
-each stage. Stage 2 begins only after explicit instruction.
+each stage. Stage 3 begins only after explicit instruction.
 
 1. **Complete:** monorepo and frontend foundation.
-2. **Next:** branding, navbar, landing page, UI primitives, and responsive behavior.
-3. Supabase authentication, route protection, and RLS.
+2. **Complete:** branding, navbar, landing page, UI primitives, and responsive behavior.
+3. **Next:** Supabase authentication, route protection, and RLS.
 4. Project management, migrations, and ownership checks.
 5. FastAPI foundation and tests.
 6. CSV upload and validation.

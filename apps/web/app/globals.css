@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@fontsource-variable/geist";
 
 @theme inline {
   --color-background: var(--background);
@@ -29,35 +30,51 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: Arial, Helvetica, sans-serif;
+  --font-sans: "Geist Variable", Arial, Helvetica, sans-serif;
 }
 
 :root {
   color-scheme: light;
   --radius: 0.625rem;
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.205 0 0);
+  --background: #fafbf8;
+  --foreground: #192c25;
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.205 0 0);
+  --card-foreground: #192c25;
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.205 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
+  --primary: #176344;
+  --primary-foreground: #ffffff;
+  --secondary: #eaf2eb;
+  --secondary-foreground: #176344;
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.439 0 0);
+  --muted-foreground: #596960;
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
+  --border: #dfe6df;
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.546 0.245 262.881);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.646 0.222 41.116);
+  --ring: #176344;
+  --chart-1: #176344;
+  --chart-2: #4f8a71;
+  --chart-3: #9ab7a1;
+  --chart-4: #d1b885;
   --chart-5: oklch(0.558 0.288 302.321);
+}
+
+@utility page-container {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 4vw, 2.5rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @layer base {

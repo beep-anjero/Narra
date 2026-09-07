@@ -5,10 +5,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Narra",
+    default: "Narra — A clearer story in your data",
     template: "%s | Narra",
   },
-  description: "Turn raw datasets into understandable dashboards.",
+  description:
+    "Meet Narra: a new way to turn CSV datasets into understandable dashboards. Explore the preview of automatic charts, statistics, and transparent insights.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

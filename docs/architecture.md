@@ -2,7 +2,7 @@
 
 ## Status
 
-Stage 1 establishes a runnable Next.js frontend and repository conventions. Only
+Stages 1–2 establish a runnable Next.js frontend, marketing page, and repository conventions. Only
 `apps/web` is executable. The remaining directories reserve the requested structure;
 no authentication, analytics, storage, or database functionality is implemented yet.
 
@@ -34,12 +34,12 @@ and RLS will enforce user isolation when these integrations are implemented.
   components only for interactions when features need them.
 - Enable TypeScript strict mode and checked indexed access. Keep the `@/*` alias
   scoped to `apps/web`, so feature imports remain straightforward.
-- Configure Tailwind CSS v4 through PostCSS and CSS theme tokens. Use a neutral
-  light palette and system fonts for now; branding belongs to Stage 2. Builds do
-  not download fonts or require external application services.
+- Configure Tailwind CSS v4 through PostCSS and shared CSS theme tokens. Stage 2
+  uses a forest-green palette and a locally bundled Geist variable font, avoiding
+  external font requests at build time and runtime.
 - Configure shadcn/ui with the New York style, React Server Components support,
-  local component aliases, and a `cn` helper. Add components and their actual
-  dependencies as needed in Stage 2 instead of preinstalling an entire UI catalog.
+  local component aliases, and a `cn` helper. Stage 2 adds only Button, Card, Badge,
+  Dialog, and Sheet, with their required dependencies.
 - Keep shared-package directories reserved until code has a real second consumer.
   No empty JavaScript packages or duplicate UI implementations are needed now.
 - Run ESLint separately from `next build`, with Next.js Core Web Vitals and
@@ -67,12 +67,32 @@ and RLS will enforce user isolation when these integrations are implemented.
 
 ## Verification strategy
 
-For this configuration-only stage, verify formatting, lint, TypeScript, a production
-build, and an HTTP smoke check of the production server. Feature tests will use
-pytest, Vitest/React Testing Library, and Playwright in their corresponding stages.
-Do not treat the reserved test directories as completed tests.
+Run `pnpm check` for formatting, lint, TypeScript, component tests, and a production
+build. Stage 2 introduces Vitest/React Testing Library with jsdom for dialog and
+mobile navigation interactions. pytest and Playwright remain later-stage work.
+Component tests do not claim browser layout or end-to-end verification.
+
+## Stage 2 boundaries
+
+- Marketing components live in `features/marketing`. The page composes sections;
+  UI primitives and the reusable brand remain in `components`.
+- Only the header/drawer and availability dialogs need client behavior. Marketing
+  copy and the dashboard illustration render on the server.
+- Preview values live in a small, explicitly illustrative fixture. The SVG and
+  category bars depict those values without introducing ECharts or an analytics
+  implementation before their stages. An accessible table exposes exact monthly
+  values; the chart scrolls within its card on small screens to keep labels legible.
+- Every navigation link targets a real section. The primary CTA explains current
+  availability in a dialog; the demo CTA points to the labeled static preview.
+  Auth, upload, data filtering, persistence, and an interactive demo remain deferred.
+- The theme uses restrained surfaces, responsive grids, visible focus styles,
+  reduced-motion support, and accessible Radix dialog/drawer behavior.
+- The Next.js development server generates local `AGENTS.md` and `CLAUDE.md` files.
+  They are retained as generated guidance, as requested by their own instructions.
+- Deployment is outside the user's stage-by-stage scope. No hosting project,
+  static-export conversion, or infrastructure change is introduced in Stage 2.
 
 ## Next stage
 
-Stage 2: Narra branding, navbar, marketing landing page, reusable UI primitives,
-and responsive behavior. Authentication and analytics remain subsequent stages.
+Stage 3: Supabase configuration, registration, login, logout, protected routes,
+and Row Level Security. Start only after explicit instruction.

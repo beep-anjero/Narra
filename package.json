@@ -13,9 +13,11 @@
     "start": "pnpm --filter @narra/web start",
     "lint": "pnpm --filter @narra/web lint",
     "typecheck": "pnpm --filter @narra/web typecheck",
+    "test": "pnpm --filter @narra/web test",
+    "test:watch": "pnpm --filter @narra/web test:watch",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm build"
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "devDependencies": {
     "prettier": "3.9.6"
