@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
+pnpm-lock.yaml
+next-env.d.ts
+*.tsbuildinfo
+.venv/
+__pycache__/
+.env
+.env.*

@@ -1,0 +1,23 @@
+{
+  "name": "narra",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=24.0.0 <25",
+    "pnpm": "11.19.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @narra/web dev",
+    "build": "pnpm --filter @narra/web build",
+    "start": "pnpm --filter @narra/web start",
+    "lint": "pnpm --filter @narra/web lint",
+    "typecheck": "pnpm --filter @narra/web typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm build"
+  },
+  "devDependencies": {
+    "prettier": "3.9.6"
+  }
+}
