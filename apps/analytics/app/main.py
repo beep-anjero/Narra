@@ -13,14 +13,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title="Narra Analytics API",
         version=__version__,
-        description="Deterministic analytics service. Stage 5 exposes liveness only.",
+        description="Deterministic analytics service with validated CSV previews.",
         responses={500: {"model": ErrorResponse, "description": "Internal service error"}},
     )
+    app.state.settings = configuration
     app.add_middleware(
         CORSMiddleware,
         allow_origins=configuration.cors_origins,
         allow_credentials=False,
-        allow_methods=["GET"],
+        allow_methods=["GET", "POST"],
         allow_headers=["Accept", "Content-Type"],
     )
     register_error_handlers(app)

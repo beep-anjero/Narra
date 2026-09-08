@@ -11,7 +11,7 @@ def test_versioned_health_returns_typed_liveness(client: TestClient):
 def test_openapi_documents_only_implemented_api(client: TestClient):
     response = client.get("/openapi.json")
     assert response.status_code == 200
-    assert set(response.json()["paths"]) == {"/api/v1/health"}
+    assert set(response.json()["paths"]) == {"/api/v1/health", "/api/v1/datasets/preview"}
     assert "HealthResponse" in response.json()["components"]["schemas"]
     assert client.get("/docs").status_code == 200
 

@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from pydantic import AnyHttpUrl, Field, TypeAdapter, field_validator
+from pydantic import AnyHttpUrl, Field, SecretStr, TypeAdapter, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,6 +17,16 @@ class Settings(BaseSettings):
     cors_origins: list[str] = Field(
         default_factory=lambda: ["http://127.0.0.1:3000", "http://localhost:3000"]
     )
+    analytics_api_key: SecretStr | None = None
+    max_upload_size_bytes: int = Field(default=20971520, ge=1, le=104857600)
+    max_dataset_rows: int = Field(default=100000, ge=1, le=1000000)
+
+    @field_validator("analytics_api_key")
+    @classmethod
+    def validate_key(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is not None and len(value.get_secret_value()) < 32:
+            raise ValueError("ANALYTICS_API_KEY must be at least 32 characters")
+        return value
 
     @field_validator("cors_origins")
     @classmethod

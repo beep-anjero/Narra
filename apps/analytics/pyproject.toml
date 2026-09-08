@@ -5,6 +5,7 @@ description = "Deterministic analytics API for Narra"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "fastapi==0.141.1",
+    "pandas==3.0.5",
     "pydantic==2.13.5",
     "pydantic-settings==2.15.0",
     "uvicorn==0.52.4",

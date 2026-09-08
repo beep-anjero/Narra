@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
 from app.schemas.error import ErrorDetail, ErrorResponse
+from app.services.errors import DatasetError
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,10 @@ def error_response(status: int, code: str, message: str) -> JSONResponse:
 
 
 def register_error_handlers(app: FastAPI) -> None:
+    @app.exception_handler(DatasetError)
+    async def dataset_error(_request: Request, exc: DatasetError) -> JSONResponse:
+        return error_response(exc.status, exc.code, exc.message)
+
     @app.exception_handler(HTTPException)
     async def http_error(_request: Request, exc: HTTPException) -> JSONResponse:
         messages = {

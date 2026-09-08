@@ -1,8 +1,8 @@
 # Narra analytics service
 
-Stage 5 provides FastAPI, typed liveness, configuration, CORS, error responses,
-OpenAPI documentation, and tests. CSV processing starts in Stage 6. There are no
-mock dataset endpoints or database connections.
+Stage 6 adds a real, authenticated CSV preview endpoint. It validates UTF-8 CSV
+uploads, headers, duplicate columns, malformed records, actual byte and row limits,
+and returns no more than 100 rows. Files are not persisted yet.
 
 ## Local development
 
@@ -34,6 +34,9 @@ Optional `apps/analytics/.env`:
 
 ```dotenv
 CORS_ORIGINS=["http://127.0.0.1:3000","http://localhost:3000"]
+ANALYTICS_API_KEY=replace-with-the-same-random-32-plus-character-value-used-by-web
+MAX_UPLOAD_SIZE_BYTES=20971520
+MAX_DATASET_ROWS=100000
 ```
 
 These are also the defaults. Environment variables override this file. Copy only
@@ -42,9 +45,23 @@ fail validation. An empty JSON array disables cross-origin browser access. HTTP(
 origins are normalized and validated; credentials, wildcards, paths, queries, and
 fragments are rejected. Restart after changing configuration.
 
-Only GET is currently allowed by CORS. Cookies are not allowed. CORS is a browser
-policy, not authentication. Upload authorization belongs to the upload integration;
-the service currently handles no private data or mutations.
+GET and POST are allowed by CORS. Cookies are not allowed. CORS is a browser policy,
+not authentication. CSV preview requires `Authorization: Bearer <ANALYTICS_API_KEY>`.
+The Next.js server adds that header after verifying the session and project owner.
+The key is mandatory for preview processing but health remains public.
+
+## CSV preview endpoint
+
+`POST /api/v1/datasets/preview` accepts a raw CSV body with `Content-Type` and a
+percent-encoded `X-Filename` header. It is designed for Narra's server-to-server
+request, not direct browser access. Its response includes the original safe filename,
+file size, full row and column counts, headers, and the first 100 data rows.
+
+CSV must be UTF-8 (a BOM is accepted), contain a nonempty header, use unique names,
+and have consistent field counts. The parser checks every row before emitting the
+preview, including records after row 100. It keeps cell values as strings, preserving
+IDs such as `0012`, literal `NA`, and empty cells for the schema stage. The limits
+default to 20 MiB and 100,000 data rows and are configured server-side.
 
 ## Architecture
 
@@ -52,7 +69,7 @@ the service currently handles no private data or mutations.
 - `app/settings.py`: validated Pydantic settings.
 - `app/api/`: thin versioned router, health handler, and error handlers.
 - `app/schemas/`: strict Pydantic response models.
-- `app/services/`: reserved for parsing and deterministic algorithms.
+- `app/services/csv_parser.py`: strict validation and bounded pandas preview parsing.
 - `app/models/`, `app/utils/`: reserved until needed.
 - `tests/`: pytest HTTP, settings, CORS, and failure-contract tests.
 
@@ -61,8 +78,8 @@ unsupported methods return 404 and 405. Request validation errors do not echo in
 values. Unhandled exceptions produce a generic 500 response and a server-side
 traceback for diagnosis. CORS preflight responses are managed by middleware.
 
-No pandas, NumPy, multipart handling, persistence, or LLM dependencies are installed
-before their implementation stage.
+Pandas and NumPy support the current CSV preview. There is no multipart parsing,
+persistence, or LLM dependency.
 
 ## Verification
 

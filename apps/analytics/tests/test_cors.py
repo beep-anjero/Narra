@@ -29,14 +29,22 @@ def test_unknown_origin_is_not_allowed(client: TestClient):
     )
 
 
-def test_unimplemented_methods_are_not_allowed_by_cors(client: TestClient):
+def test_unconfigured_methods_are_not_allowed_by_cors(client: TestClient):
     assert (
         client.options(
             "/api/v1/health",
-            headers={"Origin": "http://127.0.0.1:3000", "Access-Control-Request-Method": "POST"},
+            headers={"Origin": "http://127.0.0.1:3000", "Access-Control-Request-Method": "PATCH"},
         ).status_code
         == 400
     )
+
+
+def test_csv_preview_post_is_allowed_by_cors(client: TestClient):
+    response = client.options(
+        "/api/v1/datasets/preview",
+        headers={"Origin": "http://127.0.0.1:3000", "Access-Control-Request-Method": "POST"},
+    )
+    assert response.status_code == 200
 
 
 def test_configuration_is_isolated_per_application():
