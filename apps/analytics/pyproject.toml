@@ -1,0 +1,37 @@
+[project]
+name = "narra-analytics"
+version = "0.1.0"
+description = "Deterministic analytics API for Narra"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "fastapi==0.141.1",
+    "pydantic==2.13.5",
+    "pydantic-settings==2.15.0",
+    "uvicorn==0.52.4",
+]
+
+[tool.uv]
+package = false
+# Starlette 1.6 uses a BlockingPortal alias deprecated by AnyIO 4.15.
+# Keep warnings-as-errors enabled; revisit when Starlette removes that alias.
+constraint-dependencies = ["anyio<4.15"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers --strict-config"
+filterwarnings = ["error"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[dependency-groups]
+dev = [
+    "httpx2==2.12.0",
+    "pytest==9.1.1",
+    "ruff==0.16.6",
+]

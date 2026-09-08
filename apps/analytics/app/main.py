@@ -1,0 +1,31 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app import __version__
+from app.api.errors import register_error_handlers
+from app.api.router import router
+from app.schemas.error import ErrorResponse
+from app.settings import Settings
+
+
+def create_app(settings: Settings | None = None) -> FastAPI:
+    configuration = settings if settings is not None else Settings()
+    app = FastAPI(
+        title="Narra Analytics API",
+        version=__version__,
+        description="Deterministic analytics service. Stage 5 exposes liveness only.",
+        responses={500: {"model": ErrorResponse, "description": "Internal service error"}},
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=configuration.cors_origins,
+        allow_credentials=False,
+        allow_methods=["GET"],
+        allow_headers=["Accept", "Content-Type"],
+    )
+    register_error_handlers(app)
+    app.include_router(router)
+    return app
+
+
+app = create_app()
