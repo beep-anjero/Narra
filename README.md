@@ -6,11 +6,11 @@ Narra is a planned full-stack application that examines uploaded CSV datasets an
 recommends useful statistics, visualizations, and deterministic insights. The MVP
 will use rules and calculations, with no AI/LLM functionality.
 
-**Current status: Stage 3 authentication implementation.** The monorepo, landing
-page, email/password auth flow, protected workspace, and initial profile/RLS migration
-are implemented. **Live verification is pending:** no Supabase project is connected
-yet. Follow [Supabase setup](docs/supabase-setup.md) to enable real accounts.
-Projects, uploads, analytics, charts, and dataset persistence remain future stages.
+**Current status: Stage 4 project management implementation.** The monorepo, landing
+page, email/password auth, and owner-protected project creation, listing, editing,
+and deletion are implemented. Apply both migrations using [Supabase setup](docs/supabase-setup.md).
+Hosted database and browser verification remain pending. Uploads, analytics, charts,
+and dataset persistence remain future stages.
 
 The landing page includes an explicitly labeled illustrative dashboard. **Try Demo
 Data** links to that preview; **Analyze a Dataset** now opens registration.
@@ -171,8 +171,11 @@ migration, email confirmation template, and the live verification checklist.
 - `public.profiles` permits each authenticated user to read only their own row;
   Auth triggers own all profile writes.
 
-The current workspace confirms a real authenticated account and supports logout.
-Project cards, CRUD, project tables, and their ownership policies belong to Stage 4.
+The workspace lists projects in pages of 12. `/dashboard/new` creates a project;
+`/project/[id]` reopens saved details, and `/project/[id]/settings` supports renaming,
+description editing, and confirmed deletion. All operations use the authenticated
+Supabase client with explicit ownership filters and database RLS. No dataset or
+statistics are fabricated for empty projects.
 
 ## shadcn/ui
 
@@ -211,17 +214,19 @@ foundation checks and resolved setup issues, and the
 [Stage 2 verification record](docs/stage-2-verification.md) for the landing page.
 Stage 3 results and remaining live checks are in the
 [authentication verification record](docs/stage-3-verification.md).
+Project management results and hosted checks are in the
+[Stage 4 verification record](docs/stage-4-verification.md).
 
 ## Roadmap
 
 Work proceeds one stage at a time, with verification and a meaningful commit for
-each stage. Stage 4 begins only after explicit instruction.
+each stage. Stage 5 begins only after explicit instruction.
 
 1. **Complete:** monorepo and frontend foundation.
 2. **Complete:** branding, navbar, landing page, UI primitives, and responsive behavior.
 3. **Implemented; live setup/verification pending:** Supabase auth, route protection, and profile RLS.
-4. **Next:** project management, migrations, and ownership checks.
-5. FastAPI foundation and tests.
+4. **Implemented; hosted verification pending:** project management, migrations, and ownership checks.
+5. **Next:** FastAPI foundation and tests.
 6. CSV upload and validation.
 7. Schema inference.
 8. Statistics and missing-value analysis.

@@ -129,8 +129,24 @@ separate live verification. pytest and Playwright remain later-stage work.
 - Missing or invalid Supabase settings disable auth forms and redirect protected
   requests to login. They never grant a mock session or weaken authorization.
 
+## Stage 4 decisions
+
+- Projects reference profiles and cascade on account deletion. An indexed owner and
+  updated timestamp support paginated workspace queries (12 projects per page).
+- Server Actions validate names, descriptions, IDs, and deletion confirmation.
+  The centralized server-only `lib/api/projects.ts` obtains a verified user.
+  Reads, updates, and deletes include owner filters; inserts derive ownership from
+  the session. Database RLS independently enforces all four operations.
+- Column-level grants prohibit transferring ownership or forging timestamps.
+  A database trigger updates `updated_at` for every edit.
+- Server-rendered project pages read persistent Supabase data on each request;
+  successful mutations invalidate affected routes. No global client store is needed.
+- Project settings use the existing UI primitives and a native labeled textarea.
+  Uploads and analytics are explicitly deferred, with honest empty project states.
+- PostgreSQL tests execute both actual migrations. Action and component tests use
+  provider doubles only in tests; production has no mock persistence or bypass.
+
 ## Next stage
 
-Connect Supabase and finish the live Stage 3 checklist in `docs/supabase-setup.md`.
-Stage 4 adds project management, migrations, and ownership policies after explicit
-instruction. No Stage 4 work has been started.
+Apply the projects migration and verify the hosted project lifecycle described in
+`docs/supabase-setup.md`. Stage 5 adds FastAPI only after explicit instruction.

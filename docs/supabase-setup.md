@@ -1,4 +1,4 @@
-# Supabase setup for Stage 3
+# Supabase setup
 
 The application uses real Supabase Auth APIs. It has no development login bypass
 or local account store. No Supabase project was supplied during implementation, so
@@ -109,8 +109,33 @@ Use test accounts and a real inbox:
    and cannot insert, update, or delete profiles. SQL Editor queries run with
    privileged access and do not demonstrate end-user isolation.
 
-`/project/*` is protected at the proxy boundary, although project pages and tables
-are Stage 4 work. A logged-in request to an unimplemented project page returns 404.
+## 6. Apply the Stage 4 projects migration
+
+After applying the profiles migration, run the entire contents of
+`supabase/migrations/20260908000100_projects.sql` in a new SQL Editor query once.
+Do not rerun the profiles migration. The new migration creates projects, owner RLS
+policies, restricted column grants, an owner index, and the update timestamp trigger.
+
+Then verify with two test accounts:
+
+1. Create a named project from `/dashboard/new` and reopen it after refreshing.
+2. Edit its name and description in Project settings; verify the project card updates.
+3. Log out, log back in, and reopen the project.
+4. In a second account, confirm the first account's project is absent and opening
+   its URL shows Project unavailable. Direct Data API reads and writes must also
+   be denied or return no rows for the other owner's project.
+5. Delete an owned project by typing DELETE in settings. Verify it disappears and
+   its old URL is unavailable.
+
+CSV uploads and dataset metadata are not part of Stage 4.
+
+### Email delivery setup note
+
+The hosted dashboard may require custom SMTP before allowing email template edits.
+Configure SMTP before using the custom confirmation template above. For local-only
+testing, Confirm email can be disabled under Sign In / Providers → Email; Narra
+then handles the immediate signup session. This does not verify email ownership.
+Restore confirmation and test email delivery before public launch.
 
 ## Local automated coverage
 
