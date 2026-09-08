@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { getProject } from "@/lib/api/projects";
+import { uploadLimit } from "@/lib/api/analytics";
+import { CsvUploader } from "@/features/upload/csv-uploader";
 export const metadata = { title: "Project overview" };
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const project = await getProject((await params).id);
@@ -18,14 +20,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       >
         Project settings
       </Link>
-      <section className="mt-10 rounded-xl border bg-card p-8 sm:p-12">
-        <p className="text-sm font-medium text-primary">PROJECT SAVED</p>
-        <h2 className="mt-3 text-2xl font-semibold">Ready for your data</h2>
-        <p className="mt-4 max-w-xl text-muted-foreground">
-          Your project is saved to your account. CSV upload and automatic analysis are coming in the
-          next release stages. You can return here anytime or update your project details.
-        </p>
-      </section>
+      <CsvUploader projectId={project.id} maxBytes={uploadLimit()} />
     </>
   );
 }

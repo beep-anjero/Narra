@@ -9,7 +9,7 @@ export default function NewProjectPage() {
       </Link>
       <h1 className="mt-7 text-3xl font-semibold">Create a project</h1>
       <p className="mb-9 mt-3 text-muted-foreground">
-        Give your analysis a name. CSV uploads will be available in the next release stages.
+        Give your analysis a name. You can upload and preview a CSV after creating the project.
       </p>
       <ProjectForm />
     </>
