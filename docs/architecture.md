@@ -2,10 +2,10 @@
 
 ## Status
 
-Stages 1–3 establish the frontend, marketing page, and Supabase authentication
-implementation. Only `apps/web` is executable. The initial profile migration is
-tested locally; hosted setup and real account verification await a Supabase project.
-Project CRUD, analytics, and CSV storage remain later-stage work.
+Stages 1–5 establish the frontend, marketing page, Supabase authentication,
+owner-protected project management, and FastAPI foundation. Both applications are
+executable independently. Hosted database verification remains pending; dataset
+processing and CSV storage remain later-stage work.
 
 ## Planned service boundaries
 
@@ -73,7 +73,8 @@ build. Vitest/React Testing Library cover forms and navigation. Node-based tests
 cover auth actions, confirmation, and route guards. PGlite executes the real SQL
 migration against PostgreSQL with minimal fixtures for Supabase's owned Auth schema.
 Provider mocks are confined to tests. Hosted Supabase and email delivery require
-separate live verification. pytest and Playwright remain later-stage work.
+separate live verification. pytest now covers the analytics foundation; Playwright
+remains later-stage work.
 
 ## Stage 2 boundaries
 
@@ -149,4 +150,20 @@ separate live verification. pytest and Playwright remain later-stage work.
 ## Next stage
 
 Apply the projects migration and verify the hosted project lifecycle described in
-`docs/supabase-setup.md`. Stage 5 adds FastAPI only after explicit instruction.
+`docs/supabase-setup.md`. Stage 6 adds CSV upload only after explicit instruction.
+
+## Stage 5 decisions
+
+- Python 3.13 with uv-managed exact dependencies and a committed lockfile. The
+  service uses its own virtual environment; pnpm delegates development and checks.
+- FastAPI application factory, `/api/v1` router, strict Pydantic response schemas,
+  and a public `/api/v1/health` liveness endpoint. No external I/O or persistence.
+- Pydantic Settings reads the service-local `.env` using an absolute path, with
+  environment overrides. CORS accepts validated explicit origins and GET only.
+  CORS is not authorization; private processing access will be addressed with uploads.
+- Current models describe real health and error responses. Dataset schemas and
+  pandas/NumPy dependencies are deferred until consumed by working processing code.
+- pytest exercises HTTP contracts, OpenAPI, CORS, configuration, and safe errors.
+  Ruff handles Python lint and formatting; `pnpm check:all` verifies both runtimes.
+- Implementation follows the official [FastAPI router guidance](https://fastapi.tiangolo.com/tutorial/bigger-applications/)
+  and [CORS documentation](https://fastapi.tiangolo.com/tutorial/cors/).

@@ -17,7 +17,12 @@
     "test:watch": "pnpm --filter @narra/web test:watch",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "analytics:dev": "uv run --directory apps/analytics --locked uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
+    "analytics:check": "pnpm analytics:lint && pnpm analytics:test",
+    "analytics:lint": "uv run --directory apps/analytics --locked ruff check . && uv run --directory apps/analytics --locked ruff format --check .",
+    "analytics:test": "uv run --directory apps/analytics --locked pytest",
+    "check:all": "pnpm check && pnpm analytics:check"
   },
   "devDependencies": {
     "prettier": "3.9.6"

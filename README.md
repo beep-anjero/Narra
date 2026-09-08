@@ -6,11 +6,13 @@ Narra is a planned full-stack application that examines uploaded CSV datasets an
 recommends useful statistics, visualizations, and deterministic insights. The MVP
 will use rules and calculations, with no AI/LLM functionality.
 
-**Current status: Stage 4 project management implementation.** The monorepo, landing
+**Current status: Stage 5 FastAPI foundation.** The monorepo, landing
 page, email/password auth, and owner-protected project creation, listing, editing,
 and deletion are implemented. Apply both migrations using [Supabase setup](docs/supabase-setup.md).
 Hosted database and browser verification remain pending. Uploads, analytics, charts,
-and dataset persistence remain future stages.
+and dataset persistence remain future stages. The analytics service now provides
+a versioned health endpoint, validated configuration, CORS, and pytest coverage.
+See [analytics setup](apps/analytics/README.md) to run it locally.
 
 The landing page includes an explicitly labeled illustrative dashboard. **Try Demo
 Data** links to that preview; **Analyze a Dataset** now opens registration.
@@ -50,7 +52,7 @@ narra/
 │   │   ├── stores/
 │   │   ├── types/
 │   │   └── tests/
-│   └── analytics/           # Reserved; initialized in Stage 5
+│   └── analytics/           # FastAPI service, Python environment, and pytest tests
 │       ├── app/
 │       │   ├── api/
 │       │   ├── models/
@@ -126,7 +128,10 @@ PGlite, using PostgreSQL roles to verify profile isolation and client write deni
 
 Provider calls are mocked in unit tests; UI tests use jsdom. These do not verify
 live Supabase or browser layout, and do not replace future Playwright E2E tests.
-pytest and Playwright remain scheduled for later stages.
+The analytics service uses pytest and Ruff. Run `pnpm analytics:dev` to start it,
+`pnpm analytics:check` to check Python, or `pnpm check:all` to verify both apps.
+Install Python 3.13 and uv, then run `uv sync --directory apps/analytics --locked`
+before these commands. Playwright remains scheduled for a later stage.
 
 ## Environment variables
 
@@ -141,7 +146,7 @@ Stage 3 consumes the two public Supabase variables. Copy those entries into
 | `ANALYTICS_API_URL`                    | Future web server        | FastAPI base URL; unused yet                   |
 | `MAX_UPLOAD_SIZE_BYTES`                | Future web and analytics | Upload limit; default 20 MiB; unused yet       |
 | `MAX_DATASET_ROWS`                     | Future analytics         | Row count limit; unused yet                    |
-| `CORS_ORIGINS`                         | Future analytics         | Allowed web origins; unused yet                |
+| `CORS_ORIGINS`                         | Analytics                | JSON array of allowed HTTP(S) web origins      |
 
 Local `.env` files are ignored by Git. No service-role key is needed for the current frontend.
 Never place private credentials in variables prefixed with `NEXT_PUBLIC_`.
@@ -155,8 +160,9 @@ Auth, and Storage with Row Level Security.
 
 See [architecture decisions](docs/architecture.md) for the planned service diagram,
 feature boundaries, and stage decisions. Zod and Supabase client dependencies are
-now installed. ECharts, shared dashboard state, and Python dependencies remain
-deferred to their feature stages.
+now installed. ECharts and shared dashboard state remain deferred to their feature
+stages. FastAPI and Pydantic are installed; pandas and
+NumPy will be added when processing is implemented.
 
 ## Authentication and database setup
 
@@ -216,18 +222,19 @@ Stage 3 results and remaining live checks are in the
 [authentication verification record](docs/stage-3-verification.md).
 Project management results and hosted checks are in the
 [Stage 4 verification record](docs/stage-4-verification.md).
+FastAPI results are in the [Stage 5 verification record](docs/stage-5-verification.md).
 
 ## Roadmap
 
 Work proceeds one stage at a time, with verification and a meaningful commit for
-each stage. Stage 5 begins only after explicit instruction.
+each stage. Stage 6 begins only after explicit instruction.
 
 1. **Complete:** monorepo and frontend foundation.
 2. **Complete:** branding, navbar, landing page, UI primitives, and responsive behavior.
 3. **Implemented; live setup/verification pending:** Supabase auth, route protection, and profile RLS.
 4. **Implemented; hosted verification pending:** project management, migrations, and ownership checks.
-5. **Next:** FastAPI foundation and tests.
-6. CSV upload and validation.
+5. **Implemented:** FastAPI foundation, versioned health, CORS, and tests.
+6. **Next:** CSV upload and validation.
 7. Schema inference.
 8. Statistics and missing-value analysis.
 9. Dataset preview.
