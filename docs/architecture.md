@@ -1,11 +1,33 @@
 # Architecture
 
+## Stage 6 upload boundary
+
+The browser sends one raw CSV body to an owned project's Next.js Route Handler.
+The handler checks same-origin requests, verifies the session and project owner,
+and forwards bounded bytes through a centralized analytics client. FastAPI requires
+a server-only shared API key and independently validates byte limits and CSV content.
+This keeps Supabase authorization in Next.js and prevents unauthenticated direct
+processing. The key must never use a NEXT_PUBLIC prefix.
+
+The upload handler uses a single writable Supabase client for identity verification
+and ownership queries, persisting refreshed cookies itself. Upload API paths are
+excluded from Next.js Proxy to avoid its request-cloning buffer and default 10 MiB
+truncation. Authorization is enforced inside the handler before consuming bytes.
+
+Raw CSV transport avoids multipart buffering before authentication and lets both
+servers enforce actual streamed byte counts even without Content-Length. The file
+name is percent-encoded in X-Filename; the body retains the original CSV bytes.
+Parsing runs off the ASGI event loop. A strict CSV pass validates every record before
+pandas builds a limited preview. All preview cells remain strings; type inference
+and missing-value semantics belong to later stages. Stage 6 retains no uploaded
+data in the database, storage, or browser storage. Reloading clears the preview.
+
 ## Status
 
-Stages 1–5 establish the frontend, marketing page, Supabase authentication,
-owner-protected project management, and FastAPI foundation. Both applications are
-executable independently. Hosted database verification remains pending; dataset
-processing and CSV storage remain later-stage work.
+Stages 1–6 establish the frontend, marketing page, Supabase authentication,
+owner-protected project management, FastAPI foundation, and validated temporary CSV
+previews. Both applications are executable independently. Hosted database verification
+remains pending; schema inference, analytics, and CSV storage remain later-stage work.
 
 ## Planned service boundaries
 

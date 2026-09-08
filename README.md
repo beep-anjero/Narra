@@ -6,13 +6,12 @@ Narra is a planned full-stack application that examines uploaded CSV datasets an
 recommends useful statistics, visualizations, and deterministic insights. The MVP
 will use rules and calculations, with no AI/LLM functionality.
 
-**Current status: Stage 5 FastAPI foundation.** The monorepo, landing
+**Current status: Stage 6 CSV validation and temporary preview.** The monorepo, landing
 page, email/password auth, and owner-protected project creation, listing, editing,
 and deletion are implemented. Apply both migrations using [Supabase setup](docs/supabase-setup.md).
-Hosted database and browser verification remain pending. Uploads, analytics, charts,
-and dataset persistence remain future stages. The analytics service now provides
-a versioned health endpoint, validated configuration, CORS, and pytest coverage.
-See [analytics setup](apps/analytics/README.md) to run it locally.
+Projects now accept a validated CSV and show a temporary 100-row preview. Schema
+inference, analytics, charts, and persisted datasets remain future stages. See
+[analytics setup](apps/analytics/README.md) to run the required service locally.
 
 The landing page includes an explicitly labeled illustrative dashboard. **Try Demo
 Data** links to that preview; **Analyze a Dataset** now opens registration.
@@ -35,6 +34,9 @@ remains Stage 15.
 - Supabase SSR session refresh, server-validated login/registration, email
   confirmation, browser-local logout, and protected routes.
 - A profile table synchronized with Auth, plus owner-only reads enforced by RLS.
+- Project creation, owner-protected persistence, settings, and deletion.
+- CSV file validation, streamed upload limits, and temporary previews through a
+  server-only FastAPI integration; uploads are not persisted in Stage 6.
 - Vitest/React Testing Library tests for forms, navigation, auth actions, route
   guards, confirmation links, and redirects; PostgreSQL migration/RLS tests.
 
@@ -139,17 +141,43 @@ The root [`.env.example`](.env.example) documents current and future integration
 Stage 3 consumes the two public Supabase variables. Copy those entries into
 `apps/web/.env.local`; Next.js does not automatically read a root monorepo `.env`.
 
-| Variable                               | Consumer                 | Purpose                                        |
-| -------------------------------------- | ------------------------ | ---------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`             | Web                      | Supabase project URL                           |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Web                      | Public Supabase key, with RLS enforcing access |
-| `ANALYTICS_API_URL`                    | Future web server        | FastAPI base URL; unused yet                   |
-| `MAX_UPLOAD_SIZE_BYTES`                | Future web and analytics | Upload limit; default 20 MiB; unused yet       |
-| `MAX_DATASET_ROWS`                     | Future analytics         | Row count limit; unused yet                    |
-| `CORS_ORIGINS`                         | Analytics                | JSON array of allowed HTTP(S) web origins      |
+| Variable                               | Consumer               | Purpose                                        |
+| -------------------------------------- | ---------------------- | ---------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`             | Web                    | Supabase project URL                           |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Web                    | Public Supabase key, with RLS enforcing access |
+| `ANALYTICS_API_URL`                    | Web server             | FastAPI base URL for project CSV preview       |
+| `ANALYTICS_API_KEY`                    | Web server + analytics | Matching server-only key for CSV preview       |
+| `MAX_UPLOAD_SIZE_BYTES`                | Web + analytics        | CSV byte limit; defaults to 20 MiB             |
+| `MAX_DATASET_ROWS`                     | Analytics              | CSV data-row limit; defaults to 100,000        |
+| `CORS_ORIGINS`                         | Analytics              | JSON array of allowed HTTP(S) web origins      |
 
 Local `.env` files are ignored by Git. No service-role key is needed for the current frontend.
 Never place private credentials in variables prefixed with `NEXT_PUBLIC_`.
+
+## CSV preview local setup
+
+Generate one random value with at least 32 characters and place the exact same value
+in the ignored local files below. The key authenticates the web server to FastAPI;
+it is never sent to the browser.
+
+```dotenv
+# apps/web/.env.local
+ANALYTICS_API_URL=http://127.0.0.1:8000
+ANALYTICS_API_KEY=<your-random-key>
+MAX_UPLOAD_SIZE_BYTES=20971520
+```
+
+```dotenv
+# apps/analytics/.env
+ANALYTICS_API_KEY=<the-same-random-key>
+MAX_UPLOAD_SIZE_BYTES=20971520
+MAX_DATASET_ROWS=100000
+CORS_ORIGINS=["http://127.0.0.1:3000","http://localhost:3000"]
+```
+
+Start `pnpm analytics:dev`, then restart `pnpm dev`. Create a project and use its
+upload panel to validate and preview a UTF-8 CSV. Files are not retained after a
+refresh until Stage 14 adds Supabase Storage and project dataset persistence.
 
 ## Architecture and planned stack
 
@@ -161,8 +189,7 @@ Auth, and Storage with Row Level Security.
 See [architecture decisions](docs/architecture.md) for the planned service diagram,
 feature boundaries, and stage decisions. Zod and Supabase client dependencies are
 now installed. ECharts and shared dashboard state remain deferred to their feature
-stages. FastAPI and Pydantic are installed; pandas and
-NumPy will be added when processing is implemented.
+stages. FastAPI, Pydantic, pandas, and NumPy power the validated CSV preview.
 
 ## Authentication and database setup
 
@@ -223,19 +250,20 @@ Stage 3 results and remaining live checks are in the
 Project management results and hosted checks are in the
 [Stage 4 verification record](docs/stage-4-verification.md).
 FastAPI results are in the [Stage 5 verification record](docs/stage-5-verification.md).
+CSV upload results are in the [Stage 6 verification record](docs/stage-6-verification.md).
 
 ## Roadmap
 
 Work proceeds one stage at a time, with verification and a meaningful commit for
-each stage. Stage 6 begins only after explicit instruction.
+each stage. Stage 7 begins only after explicit instruction.
 
 1. **Complete:** monorepo and frontend foundation.
 2. **Complete:** branding, navbar, landing page, UI primitives, and responsive behavior.
 3. **Implemented; live setup/verification pending:** Supabase auth, route protection, and profile RLS.
 4. **Implemented; hosted verification pending:** project management, migrations, and ownership checks.
 5. **Implemented:** FastAPI foundation, versioned health, CORS, and tests.
-6. **Next:** CSV upload and validation.
-7. Schema inference.
+6. **Implemented; server configuration required for live uploads:** CSV upload, validation, and temporary preview.
+7. **Next:** Schema inference.
 8. Statistics and missing-value analysis.
 9. Dataset preview.
 10. Deterministic visualization recommendations.
