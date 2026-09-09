@@ -172,8 +172,29 @@ remains later-stage work.
 ## Next stage
 
 Apply the projects migration and verify the hosted project lifecycle described in
-`docs/supabase-setup.md`. Stage 9 adds the dataset preview and statistics panel only
+`docs/supabase-setup.md`. Stage 10 adds visualization recommendations only
 after explicit instruction.
+
+## Stage 9 decisions
+
+- The reusable preview renders 10, 25, or 50 rows per page from the existing
+  bounded response. It does not fetch or render the entire CSV. Search and natural
+  text sorting operate only on those preview rows and never change full-data statistics.
+  Sort ties retain source order; blanks stay last in either direction.
+- Type badges are shared by the schema table, preview headers, and statistics
+  panel. Blank and whitespace-only cells have an explicit Missing label; literal
+  NA and original source strings remain visible. Source row numbers survive sorting.
+- Local React state is sufficient for pagination, search, sort, and column
+  selection. No dashboard store or new dependency is needed yet.
+- The statistics panel consumes the typed Stage 8 response. It shows dataset
+  completeness and one selected column at a time, including unavailable values,
+  invalid-value counts, UTC date bounds, and bounded category frequencies.
+- `/project/[id]/data` uses the existing server-side `getProject` ownership check
+  and protected layout. It reuses the uploader and exploration components. Data
+  remains component-local until the persistence stage, so navigation/reload requires
+  another upload; the interface states this explicitly.
+- Keyboard controls, labels, table scopes, sort announcements, live page counts,
+  and independently scrollable tables support accessibility and narrow layouts.
 
 ## Stage 8 decisions
 

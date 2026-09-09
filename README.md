@@ -6,13 +6,14 @@ Narra is a planned full-stack application that examines uploaded CSV datasets an
 recommends useful statistics, visualizations, and deterministic insights. The MVP
 will use rules and calculations, with no AI/LLM functionality.
 
-**Current status: Stage 8 statistics.** The monorepo, landing
+**Current status: Stage 9 dataset exploration.** The monorepo, landing
 page, email/password auth, and owner-protected project creation, listing, editing,
 and deletion are implemented. Apply both migrations using [Supabase setup](docs/supabase-setup.md).
 Projects accept a validated CSV, infer column types from every data row, and return
-up to 100 preview rows (the current UI shows ten). Missing counts, unique counts,
+up to 100 preview rows with pagination, search, and natural text sorting. Missing counts, unique counts,
 and sample values appear in the schema summary. Analysis now includes full-dataset
-statistics and missing-value summaries; the statistics panel, charts, and persisted datasets remain future stages. See
+statistics and missing-value summaries displayed in a column statistics panel.
+Charts and persisted datasets remain future stages. See
 [analytics setup](apps/analytics/README.md) to run the required service locally.
 
 The landing page includes an explicitly labeled illustrative dashboard. **Try Demo
@@ -43,6 +44,8 @@ remains Stage 15.
   text columns, with missing counts/percentages, unique values, and bounded samples.
 - Independent statistics service: numeric summaries, categorical frequencies,
   datetime ranges, and dataset completeness, with typed API responses.
+- Paginated preview with column type badges, missing-cell labels, preview search,
+  and sorting; full-dataset statistics and an owner-protected dataset workspace.
 - Vitest/React Testing Library tests for forms, navigation, auth actions, route
   guards, confirmation links, and redirects; PostgreSQL migration/RLS tests.
 
@@ -259,11 +262,12 @@ FastAPI results are in the [Stage 5 verification record](docs/stage-5-verificati
 CSV upload results are in the [Stage 6 verification record](docs/stage-6-verification.md).
 Schema rules and checks are in the [Stage 7 verification record](docs/stage-7-verification.md).
 Statistics rules and checks are in the [Stage 8 verification record](docs/stage-8-verification.md).
+Dataset exploration checks are in the [Stage 9 verification record](docs/stage-9-verification.md).
 
 ## Roadmap
 
 Work proceeds one stage at a time, with verification and a meaningful commit for
-each stage. Stage 9 begins only after explicit instruction.
+each stage. Stage 10 begins only after explicit instruction.
 
 1. **Complete:** monorepo and frontend foundation.
 2. **Complete:** branding, navbar, landing page, UI primitives, and responsive behavior.
@@ -273,8 +277,8 @@ each stage. Stage 9 begins only after explicit instruction.
 6. **Implemented; server configuration required for live uploads:** CSV upload, validation, and temporary preview.
 7. **Implemented:** Schema inference, column metadata, and schema summary.
 8. **Implemented:** Statistics and missing-value analysis.
-9. **Next:** Dataset preview, statistics panel, and pagination.
-10. Deterministic visualization recommendations.
+9. **Implemented:** Dataset preview, statistics panel, and pagination.
+10. **Next:** Deterministic visualization recommendations.
 11. ECharts dashboard and KPIs.
 12. Deterministic insights, correlations, and outliers.
 13. Synchronized dashboard filters.
