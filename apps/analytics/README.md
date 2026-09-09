@@ -1,8 +1,9 @@
 # Narra analytics service
 
-Stage 6 adds a real, authenticated CSV preview endpoint. It validates UTF-8 CSV
+Stage 7 adds deterministic schema inference to the authenticated CSV workflow. It validates UTF-8 CSV
 uploads, headers, duplicate columns, malformed records, actual byte and row limits,
-and returns no more than 100 rows. Files are not persisted yet.
+and returns no more than 100 preview rows plus metadata calculated from all rows.
+Files are not persisted yet.
 
 ## Local development
 
@@ -26,7 +27,7 @@ in `pyproject.toml` and `uv.lock`. pnpm manages JavaScript; uv manages Python.
 ```
 
 Health is public and reports process liveness, not Supabase connectivity or dataset
-processing readiness. Dataset endpoints are absent until implemented.
+processing readiness. Only preview and schema analysis endpoints are implemented.
 
 ## Configuration
 
@@ -63,6 +64,43 @@ preview, including records after row 100. It keeps cell values as strings, prese
 IDs such as `0012`, literal `NA`, and empty cells for the schema stage. The limits
 default to 20 MiB and 100,000 data rows and are configured server-side.
 
+## Schema analysis endpoint
+
+`POST /api/v1/datasets/analyze` accepts the same authenticated raw CSV request as
+preview. Its response is `{preview, column_metadata}`; each metadata item contains
+`name`, `detected_type`, `missing_count`, `missing_percentage`, `unique_count`, and
+`sample_values`. The existing preview endpoint retains its original response.
+
+Rules run in this order on all non-missing values:
+
+1. Boolean: case-insensitive true/false, yes/no, y/n, t/f; 0/1 only with a name such
+   as `is_active`, `flag`, or `enabled`. Unhinted 0/1 measurements remain numeric.
+2. Numeric: at least 90% parse as finite numbers, including decimal/exponent forms
+   and valid comma thousands grouping. Currency signs and malformed separators are
+   not stripped. Original strings, including leading zeros, remain in the preview.
+3. Datetime: at least 90% parse as full year-month-day or slash-separated calendar
+   dates, optionally with time/offset. Ambiguous slash dates use pandas' month-first
+   preference. Pure integers, partial dates, and time-only strings are excluded.
+4. Categorical: unique non-missing strings / non-missing rows is at most 0.5.
+5. Text: fallback, including entirely missing columns.
+
+Missing means empty or whitespace-only cells (or nulls in a supplied DataFrame).
+Literal `NA`, `NULL`, and `NaN` remain data. Counts include all validated rows;
+samples contain the first five distinct original non-missing strings. Mixed columns
+can pass a 90% threshold with invalid values remaining; these values are not dropped.
+
+Optional `apps/analytics/.env` settings:
+
+```dotenv
+NUMERIC_PARSE_THRESHOLD=0.9
+DATETIME_PARSE_THRESHOLD=0.9
+CATEGORICAL_UNIQUE_RATIO_THRESHOLD=0.5
+SCHEMA_SAMPLE_SIZE=5
+```
+
+Parse thresholds accept 0.5–1, categorical ratio 0–1, and samples 1–5. Numeric
+statistics, date ranges, and category frequencies are Stage 8 work.
+
 ## Architecture
 
 - `app/main.py`: application factory and composition.
@@ -70,6 +108,7 @@ default to 20 MiB and 100,000 data rows and are configured server-side.
 - `app/api/`: thin versioned router, health handler, and error handlers.
 - `app/schemas/`: strict Pydantic response models.
 - `app/services/csv_parser.py`: strict validation and bounded pandas preview parsing.
+- `app/services/schema_detector.py`: full-data classification and column metadata.
 - `app/models/`, `app/utils/`: reserved until needed.
 - `tests/`: pytest HTTP, settings, CORS, and failure-contract tests.
 

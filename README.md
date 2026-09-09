@@ -6,11 +6,12 @@ Narra is a planned full-stack application that examines uploaded CSV datasets an
 recommends useful statistics, visualizations, and deterministic insights. The MVP
 will use rules and calculations, with no AI/LLM functionality.
 
-**Current status: Stage 6 CSV validation and temporary preview.** The monorepo, landing
+**Current status: Stage 7 schema inference.** The monorepo, landing
 page, email/password auth, and owner-protected project creation, listing, editing,
 and deletion are implemented. Apply both migrations using [Supabase setup](docs/supabase-setup.md).
-Projects now accept a validated CSV and show a temporary 100-row preview. Schema
-inference, analytics, charts, and persisted datasets remain future stages. See
+Projects accept a validated CSV, infer column types from every data row, and return
+up to 100 preview rows (the current UI shows ten). Missing counts, unique counts,
+and sample values appear in the schema summary. Statistics, charts, and persisted datasets remain future stages. See
 [analytics setup](apps/analytics/README.md) to run the required service locally.
 
 The landing page includes an explicitly labeled illustrative dashboard. **Try Demo
@@ -37,6 +38,8 @@ remains Stage 15.
 - Project creation, owner-protected persistence, settings, and deletion.
 - CSV file validation, streamed upload limits, and temporary previews through a
   server-only FastAPI integration; uploads are not persisted in Stage 6.
+- Full-dataset schema inference for numeric, categorical, datetime, boolean, and
+  text columns, with missing counts/percentages, unique values, and bounded samples.
 - Vitest/React Testing Library tests for forms, navigation, auth actions, route
   guards, confirmation links, and redirects; PostgreSQL migration/RLS tests.
 
@@ -251,11 +254,12 @@ Project management results and hosted checks are in the
 [Stage 4 verification record](docs/stage-4-verification.md).
 FastAPI results are in the [Stage 5 verification record](docs/stage-5-verification.md).
 CSV upload results are in the [Stage 6 verification record](docs/stage-6-verification.md).
+Schema rules and checks are in the [Stage 7 verification record](docs/stage-7-verification.md).
 
 ## Roadmap
 
 Work proceeds one stage at a time, with verification and a meaningful commit for
-each stage. Stage 7 begins only after explicit instruction.
+each stage. Stage 8 begins only after explicit instruction.
 
 1. **Complete:** monorepo and frontend foundation.
 2. **Complete:** branding, navbar, landing page, UI primitives, and responsive behavior.
@@ -263,8 +267,8 @@ each stage. Stage 7 begins only after explicit instruction.
 4. **Implemented; hosted verification pending:** project management, migrations, and ownership checks.
 5. **Implemented:** FastAPI foundation, versioned health, CORS, and tests.
 6. **Implemented; server configuration required for live uploads:** CSV upload, validation, and temporary preview.
-7. **Next:** Schema inference.
-8. Statistics and missing-value analysis.
+7. **Implemented:** Schema inference, column metadata, and schema summary.
+8. **Next:** Statistics and missing-value analysis.
 9. Dataset preview.
 10. Deterministic visualization recommendations.
 11. ECharts dashboard and KPIs.

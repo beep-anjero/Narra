@@ -18,16 +18,16 @@ Raw CSV transport avoids multipart buffering before authentication and lets both
 servers enforce actual streamed byte counts even without Content-Length. The file
 name is percent-encoded in X-Filename; the body retains the original CSV bytes.
 Parsing runs off the ASGI event loop. A strict CSV pass validates every record before
-pandas builds a limited preview. All preview cells remain strings; type inference
-and missing-value semantics belong to later stages. Stage 6 retains no uploaded
+pandas builds a limited preview. All preview cells remain strings. Stage 7 adds
+full-dataset type inference as described below. Stage 6 retains no uploaded
 data in the database, storage, or browser storage. Reloading clears the preview.
 
 ## Status
 
-Stages 1–6 establish the frontend, marketing page, Supabase authentication,
-owner-protected project management, FastAPI foundation, and validated temporary CSV
-previews. Both applications are executable independently. Hosted database verification
-remains pending; schema inference, analytics, and CSV storage remain later-stage work.
+Stages 1–7 establish the frontend, marketing page, Supabase authentication,
+owner-protected project management, validated CSV previews, and full-dataset schema
+inference. Both applications are executable independently. Hosted database verification
+remains pending; statistics, charts, and CSV storage remain later-stage work.
 
 ## Planned service boundaries
 
@@ -172,7 +172,32 @@ remains later-stage work.
 ## Next stage
 
 Apply the projects migration and verify the hosted project lifecycle described in
-`docs/supabase-setup.md`. Stage 6 adds CSV upload only after explicit instruction.
+`docs/supabase-setup.md`. Stage 8 adds statistics only after explicit instruction.
+
+## Stage 7 decisions
+
+- `/api/v1/datasets/analyze` returns `{preview, column_metadata}`. The browser's
+  existing project upload route now forwards to this endpoint so one file upload
+  yields both outputs. `/api/v1/datasets/preview` retains its Stage 6 response.
+- Schema inference needs every data row, not just the first 100. The parser's shared
+  reader supports a full DataFrame for analysis and a bounded DataFrame for preview.
+  Both normalize exactly the same validated CSV records before pandas reads them,
+  preserving quoted blanks and whitespace-only records. Existing byte/row limits apply.
+- `schema_detector.py` owns classification and column metadata. Routes only compose
+  parsing and inference; both run in worker threads. Source values are never changed
+  or persisted. Statistics remain a separate Stage 8 service.
+- Missing means null, empty, or whitespace-only. Literal NA/NULL/NaN labels are
+  preserved. Unique counts and sample values use exact non-missing source strings.
+- Precedence is boolean, numeric, datetime, categorical, text. Numeric 0/1 requires
+  a boolean-like column name. Complete calendar dates are required before parsing;
+  numeric IDs, partial dates, and time-only strings cannot become timestamps.
+- Numeric and date matches default to 90% of non-missing values. Categorical unique
+  ratio defaults to at most 0.5. All are validated settings. Samples preserve first
+  occurrence order, with a configurable limit of 1–5.
+- Numeric parsing checks valid grouping and finite values. Date parsing uses UTC
+  internally to support mixed offsets without changing the original preview.
+  See pandas [numeric coercion](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.to_numeric.html)
+  and [datetime coercion](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.to_datetime.html).
 
 ## Stage 5 decisions
 
