@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { statisticsSchema } from "./statistics-contract";
 
 export const previewSchema = z
   .object({
@@ -30,6 +31,8 @@ export const analysisSchema = z
   .object({
     preview: previewSchema,
     column_metadata: z.array(columnMetadataSchema).max(200),
+    // Accept Stage 7 services during deployment; validate and retain Stage 8 data.
+    statistics: statisticsSchema.optional(),
   })
   .refine(
     (value) =>
@@ -41,7 +44,31 @@ export const analysisSchema = z
           column.unique_count <= value.preview.row_count - column.missing_count,
       ),
     "Invalid schema dimensions",
-  );
+  )
+  .refine(({ preview, column_metadata, statistics }) => {
+    if (!statistics) return true;
+    const { summary, columns } = statistics;
+    return (
+      summary.row_count === preview.row_count &&
+      summary.column_count === preview.column_count &&
+      summary.total_cells === preview.row_count * preview.column_count &&
+      summary.complete_rows <= preview.row_count &&
+      summary.missing_cells ===
+        column_metadata.reduce((total, column) => total + column.missing_count, 0) &&
+      columns.length === column_metadata.length &&
+      columns.every((column, index) => {
+        const metadata = column_metadata[index];
+        return (
+          column.name === metadata?.name &&
+          column.detected_type === metadata.detected_type &&
+          column.missing === metadata.missing_count &&
+          column.unique_count === metadata.unique_count &&
+          column.count + column.missing + ("invalid_count" in column ? column.invalid_count : 0) ===
+            preview.row_count
+        );
+      })
+    );
+  }, "Invalid statistics dimensions");
 export type DatasetAnalysis = z.infer<typeof analysisSchema>;
 export const uploadErrorSchema = z.object({
   error: z.object({ code: z.string(), message: z.string() }),
