@@ -11,13 +11,17 @@ def test_versioned_health_returns_typed_liveness(client: TestClient):
 def test_openapi_documents_only_implemented_api(client: TestClient):
     response = client.get("/openapi.json")
     assert response.status_code == 200
-    assert set(response.json()["paths"]) == {"/api/v1/health", "/api/v1/datasets/preview"}
+    assert set(response.json()["paths"]) == {
+        "/api/v1/health",
+        "/api/v1/datasets/preview",
+        "/api/v1/datasets/analyze",
+    }
     assert "HealthResponse" in response.json()["components"]["schemas"]
     assert client.get("/docs").status_code == 200
 
 
 def test_unknown_route_returns_typed_error(client: TestClient):
-    response = client.get("/api/v1/datasets/analyze")
+    response = client.get("/api/v1/unknown")
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "not_found"
     assert response.headers["cache-control"] == "no-store"

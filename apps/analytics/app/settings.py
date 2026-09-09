@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     analytics_api_key: SecretStr | None = None
     max_upload_size_bytes: int = Field(default=20971520, ge=1, le=104857600)
     max_dataset_rows: int = Field(default=100000, ge=1, le=1000000)
+    numeric_parse_threshold: float = Field(default=0.9, ge=0.5, le=1)
+    datetime_parse_threshold: float = Field(default=0.9, ge=0.5, le=1)
+    categorical_unique_ratio_threshold: float = Field(default=0.5, ge=0, le=1)
+    schema_sample_size: int = Field(default=5, ge=1, le=5)
 
     @field_validator("analytics_api_key")
     @classmethod

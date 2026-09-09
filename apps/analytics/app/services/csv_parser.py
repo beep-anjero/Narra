@@ -1,6 +1,7 @@
 import csv
 import io
 import re
+from dataclasses import dataclass
 
 import pandas as pd
 
@@ -17,6 +18,12 @@ CSV_MIME_TYPES = {
 }
 
 
+@dataclass(frozen=True)
+class ParsedCsv:
+    preview: DatasetPreview
+    frame: pd.DataFrame
+
+
 def validate_file_metadata(filename: str, mime_type: str) -> str:
     if not filename or len(filename) > 255 or any(ord(c) < 32 for c in filename):
         raise DatasetError("invalid_filename", "Choose a CSV with a valid filename.")
@@ -30,9 +37,15 @@ def validate_file_metadata(filename: str, mime_type: str) -> str:
     return safe_name
 
 
-def parse_csv(
-    content: bytes, filename: str, mime_type: str, max_bytes: int, max_rows: int
-) -> DatasetPreview:
+def read_csv(
+    content: bytes,
+    filename: str,
+    mime_type: str,
+    max_bytes: int,
+    max_rows: int,
+    *,
+    preview_only: bool = False,
+) -> ParsedCsv:
     safe_name = validate_file_metadata(filename, mime_type)
     if len(content) > max_bytes:
         raise DatasetError(
@@ -77,7 +90,9 @@ def parse_csv(
                 "Narra could not detect a valid header row. Add column names before your data.",
             )
         row_count = 0
-        preview_rows: list[list[str]] = []
+        normalized = io.StringIO(newline="")
+        writer = csv.writer(normalized)
+        writer.writerow(headers)
         for row in reader:
             if not row:  # Ignore physically blank records, not rows containing empty cells.
                 continue
@@ -88,12 +103,12 @@ def parse_csv(
                     f"expected {len(headers)}.",
                 )
             row_count += 1
-            if row_count <= 100:
-                preview_rows.append(row)
             if row_count > max_rows:
                 raise DatasetError(
                     "too_many_rows", f"This CSV exceeds the {max_rows:,}-row limit.", 413
                 )
+            if not preview_only or row_count <= 100:
+                writer.writerow(row)
     except csv.Error as exc:
         raise DatasetError(
             "malformed_csv",
@@ -102,28 +117,37 @@ def parse_csv(
         ) from exc
     if row_count == 0:
         raise DatasetError("no_data", "This CSV has a header but no data rows.")
-    # Preserve identifiers, literal NA/NULL strings, and empty cells. Stage 7 owns inference.
-    # Normalize only the validated preview so blank lines and quoted empty cells have
-    # identical semantics between csv.reader and pandas (no full DataFrame allocation).
-    preview_text = io.StringIO(newline="")
-    writer = csv.writer(preview_text)
-    writer.writerow(headers)
-    writer.writerows(preview_rows)
-    preview_text.seek(0)
+    # Both parsers consume the same validated records. Normalization preserves
+    # quoted empty cells and whitespace-only records that pandas otherwise skips.
+    normalized.seek(0)
     try:
         frame = pd.read_csv(
-            preview_text, dtype=str, na_filter=False, nrows=100, skip_blank_lines=False
+            normalized,
+            dtype=str,
+            na_filter=False,
+            keep_default_na=False,
+            skip_blank_lines=False,
+            names=headers,
+            header=0,
         )
     except (pd.errors.ParserError, pd.errors.EmptyDataError, ValueError) as exc:
         raise DatasetError(
             "malformed_csv", "Narra could not parse this CSV. Check delimiters and quoting."
         ) from exc
-    return DatasetPreview(
+    preview = DatasetPreview(
         filename=safe_name,
         file_size=len(content),
         row_count=row_count,
         column_count=len(headers),
         columns=headers,
-        rows=frame.values.tolist(),
+        rows=frame.head(100).values.tolist(),
         truncated=row_count > 100,
     )
+    return ParsedCsv(preview=preview, frame=frame)
+
+
+def parse_csv(
+    content: bytes, filename: str, mime_type: str, max_bytes: int, max_rows: int
+) -> DatasetPreview:
+    """Compatibility wrapper for the Stage 6 temporary-preview endpoint."""
+    return read_csv(content, filename, mime_type, max_bytes, max_rows, preview_only=True).preview

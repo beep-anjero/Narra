@@ -4,27 +4,18 @@ from urllib.parse import unquote
 from fastapi import APIRouter, Request, Response
 from starlette.concurrency import run_in_threadpool
 
-from app.schemas.dataset import DatasetPreview
+from app.schemas.dataset import DatasetAnalysis, DatasetPreview
 from app.schemas.error import ErrorResponse
-from app.services.csv_parser import parse_csv, validate_file_metadata
+from app.services.csv_parser import parse_csv, read_csv, validate_file_metadata
 from app.services.errors import DatasetError
+from app.services.schema_detector import infer_schema
 from app.settings import Settings
 
 router = APIRouter(tags=["Datasets"])
+ERROR_RESPONSES = {status: {"model": ErrorResponse} for status in (401, 413, 415, 422, 503)}
 
 
-@router.post(
-    "/datasets/preview",
-    response_model=DatasetPreview,
-    responses={status: {"model": ErrorResponse} for status in (401, 413, 415, 422, 503)},
-    openapi_extra={
-        "requestBody": {
-            "required": True,
-            "content": {"text/csv": {"schema": {"type": "string", "format": "binary"}}},
-        }
-    },
-)
-async def preview_dataset(request: Request, response: Response) -> DatasetPreview:
+async def _validated_upload(request: Request) -> tuple[bytes, str, str, Settings]:
     settings: Settings = request.app.state.settings
     if settings.analytics_api_key is None:
         raise DatasetError(
@@ -50,6 +41,22 @@ async def preview_dataset(request: Request, response: Response) -> DatasetPrevie
                 413,
             )
         content.extend(chunk)
+    return bytes(content), filename, mime, settings
+
+
+@router.post(
+    "/datasets/preview",
+    response_model=DatasetPreview,
+    responses=ERROR_RESPONSES,
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {"text/csv": {"schema": {"type": "string", "format": "binary"}}},
+        }
+    },
+)
+async def preview_dataset(request: Request, response: Response) -> DatasetPreview:
+    content, filename, mime, settings = await _validated_upload(request)
     result = await run_in_threadpool(
         parse_csv,
         bytes(content),
@@ -58,5 +65,32 @@ async def preview_dataset(request: Request, response: Response) -> DatasetPrevie
         settings.max_upload_size_bytes,
         settings.max_dataset_rows,
     )
+    response.headers["Cache-Control"] = "no-store"
+    return result
+
+
+@router.post(
+    "/datasets/analyze",
+    response_model=DatasetAnalysis,
+    responses=ERROR_RESPONSES,
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {"text/csv": {"schema": {"type": "string", "format": "binary"}}},
+        }
+    },
+)
+async def analyze_dataset(request: Request, response: Response) -> DatasetAnalysis:
+    content, filename, mime, settings = await _validated_upload(request)
+    parsed = await run_in_threadpool(
+        read_csv,
+        content,
+        filename,
+        mime,
+        settings.max_upload_size_bytes,
+        settings.max_dataset_rows,
+    )
+    metadata = await run_in_threadpool(infer_schema, parsed.frame, settings)
+    result = DatasetAnalysis(preview=parsed.preview, column_metadata=metadata)
     response.headers["Cache-Control"] = "no-store"
     return result

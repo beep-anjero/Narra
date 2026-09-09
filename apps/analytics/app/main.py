@@ -13,7 +13,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title="Narra Analytics API",
         version=__version__,
-        description="Deterministic analytics service with validated CSV previews.",
+        description="Deterministic analytics service with CSV previews and schema inference.",
         responses={500: {"model": ErrorResponse, "description": "Internal service error"}},
     )
     app.state.settings = configuration

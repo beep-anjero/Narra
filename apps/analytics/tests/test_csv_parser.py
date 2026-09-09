@@ -1,6 +1,6 @@
 import pytest
 
-from app.services.csv_parser import parse_csv
+from app.services.csv_parser import parse_csv, read_csv
 from app.services.errors import DatasetError
 
 
@@ -85,3 +85,18 @@ def test_metadata_and_configurable_limits(kwargs, code):
 def test_column_limit():
     with pytest.raises(DatasetError, match="200 columns"):
         parse((",".join(f"c{i}" for i in range(201)) + "\n").encode())
+
+
+def test_full_frame_keeps_blank_whitespace_and_quoted_records_in_sync():
+    result = read_csv(b'Name\n""\n \n\nAlice\n', "data.csv", "text/csv", 1000, 100)
+    assert result.preview.row_count == len(result.frame) == 3
+    assert result.frame.values.tolist() == result.preview.rows == [[""], [" "], ["Alice"]]
+
+
+def test_preview_mode_does_not_build_a_full_frame():
+    content = ("Value\n" + "12\n" * 150).encode()
+    preview = read_csv(content, "data.csv", "text/csv", 1000, 200, preview_only=True)
+    full = read_csv(content, "data.csv", "text/csv", 1000, 200)
+    assert len(preview.frame) == 100
+    assert len(full.frame) == 150
+    assert full.preview == preview.preview
