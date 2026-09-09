@@ -7,10 +7,10 @@ const m = vi.hoisted(() => ({
   select: vi.fn(),
   eq: vi.fn(),
   maybeSingle: vi.fn(),
-  preview: vi.fn(),
+  analyze: vi.fn(),
 }));
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: m.client }));
-vi.mock("@/lib/api/analytics", () => ({ previewDataset: m.preview, uploadLimit: () => 100 }));
+vi.mock("@/lib/api/analytics", () => ({ analyzeDataset: m.analyze, uploadLimit: () => 100 }));
 import { POST } from "@/app/api/projects/[id]/dataset/preview/route";
 const id = "11111111-1111-4111-8111-111111111111";
 function request(body = "A,B\n1,2", headers: Record<string, string> = {}) {
@@ -32,12 +32,12 @@ beforeEach(() => {
   m.client.mockResolvedValue({ ...m, auth: { getUser: m.user } });
   for (const method of [m.from, m.select, m.eq]) method.mockReturnValue(m);
   m.maybeSingle.mockResolvedValue({ data: { id }, error: null });
-  m.preview.mockResolvedValue({ filename: "data.csv" });
+  m.analyze.mockResolvedValue({ preview: { filename: "data.csv" }, column_metadata: [] });
 });
 it("rejects cross-origin uploads before reading identity or body", async () => {
   expect((await POST(request("A", { Origin: "https://evil.example" }), context)).status).toBe(403);
   expect(m.user).not.toHaveBeenCalled();
-  expect(m.preview).not.toHaveBeenCalled();
+  expect(m.analyze).not.toHaveBeenCalled();
 });
 it("requires an authenticated session", async () => {
   m.user.mockResolvedValue({ data: { user: null }, error: null });
@@ -49,7 +49,7 @@ it("denies another user's project without forwarding data", async () => {
   expect((await POST(request(), context)).status).toBe(404);
   expect(m.eq).toHaveBeenCalledWith("user_id", "owner");
   expect(m.eq).toHaveBeenCalledWith("id", id);
-  expect(m.preview).not.toHaveBeenCalled();
+  expect(m.analyze).not.toHaveBeenCalled();
 });
 it("reports database failure", async () => {
   m.maybeSingle.mockResolvedValue({ data: null, error: {} });
@@ -57,7 +57,7 @@ it("reports database failure", async () => {
 });
 it("enforces actual byte limits without a content-length", async () => {
   expect((await POST(request("A".repeat(101)), context)).status).toBe(413);
-  expect(m.preview).not.toHaveBeenCalled();
+  expect(m.analyze).not.toHaveBeenCalled();
 });
 it.each([
   ["", 422],
@@ -67,12 +67,12 @@ it.each([
     (await POST(request(body, status === 415 ? { "X-Filename": "data.xlsx" } : {}), context))
       .status,
   ).toBe(status);
-  expect(m.preview).not.toHaveBeenCalled();
+  expect(m.analyze).not.toHaveBeenCalled();
 });
 it("forwards original bytes after ownership checks and never caches", async () => {
   const result = await POST(request(), context);
   expect(result.status).toBe(200);
   expect(m.client).toHaveBeenCalledWith(true);
   expect(result.headers.get("cache-control")).toBe("no-store");
-  expect(new TextDecoder().decode(m.preview.mock.calls[0]?.[0] as ArrayBuffer)).toBe("A,B\n1,2");
+  expect(new TextDecoder().decode(m.analyze.mock.calls[0]?.[0] as ArrayBuffer)).toBe("A,B\n1,2");
 });

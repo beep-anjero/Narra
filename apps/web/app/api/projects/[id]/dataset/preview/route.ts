@@ -1,7 +1,7 @@
 import { projectIdSchema } from "@/features/projects/schemas";
 import { UploadError, validateUpload } from "@/features/upload/contracts";
 import { readUploadBody } from "@/features/upload/read-body";
-import { previewDataset, uploadLimit } from "@/lib/api/analytics";
+import { analyzeDataset, uploadLimit } from "@/lib/api/analytics";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -51,7 +51,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const invalid = validateUpload({ name, type: mime, size: 1 }, limit);
     if (invalid) return failure(415, "invalid_file", invalid);
     const content = await readUploadBody(request, limit);
-    const result = await previewDataset(content, name, mime);
+    const result = await analyzeDataset(content, name, mime);
     return Response.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (error instanceof UploadError) return failure(error.status, error.code, error.message);

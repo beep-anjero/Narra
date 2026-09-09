@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { previewSchema, uploadErrorSchema, UploadError } from "@/features/upload/contracts";
+import { analysisSchema, uploadErrorSchema, UploadError } from "@/features/upload/contracts";
 
 export function uploadLimit() {
   return z.coerce
@@ -11,7 +11,7 @@ export function uploadLimit() {
     .parse(process.env.MAX_UPLOAD_SIZE_BYTES ?? 20971520);
 }
 
-export async function previewDataset(content: ArrayBuffer, filename: string, mime: string) {
+export async function analyzeDataset(content: ArrayBuffer, filename: string, mime: string) {
   const config = z
     .object({ url: z.url().refine((value) => /^https?:\/\//.test(value)), key: z.string().min(32) })
     .safeParse({
@@ -26,7 +26,7 @@ export async function previewDataset(content: ArrayBuffer, filename: string, mim
     );
   let response: Response;
   try {
-    response = await fetch(`${config.data.url.replace(/\/$/, "")}/api/v1/datasets/preview`, {
+    response = await fetch(`${config.data.url.replace(/\/$/, "")}/api/v1/datasets/analyze`, {
       method: "POST",
       body: content,
       cache: "no-store",
@@ -64,11 +64,11 @@ export async function previewDataset(content: ArrayBuffer, filename: string, mim
       503,
     );
   }
-  const result = previewSchema.safeParse(payload);
+  const result = analysisSchema.safeParse(payload);
   if (!result.success)
     throw new UploadError(
       "invalid_response",
-      "The analytics service returned an invalid preview. Please retry.",
+      "The analytics service returned an invalid analysis. Please retry.",
       502,
     );
   return result.data;

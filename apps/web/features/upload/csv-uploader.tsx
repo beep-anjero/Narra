@@ -4,13 +4,14 @@ import { useEffect, useId, useRef, useState } from "react";
 import { FileSpreadsheet, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { uploadDataset } from "@/lib/api/datasets";
-import { validateUpload, type DatasetPreview } from "./contracts";
+import { validateUpload, type DatasetAnalysis } from "./contracts";
 import { PreviewTable } from "./preview-table";
+import { SchemaSummary } from "./schema-summary";
 
 export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxBytes: number }) {
   const inputId = useId();
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<DatasetPreview | null>(null);
+  const [analysis, setAnalysis] = useState<DatasetAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -21,7 +22,7 @@ export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxByt
 
   function selectFiles(files: FileList | null) {
     if (busy || !files?.length) return;
-    setPreview(null);
+    setAnalysis(null);
     setError(null);
     setNotice("");
     setFile(null);
@@ -45,14 +46,14 @@ export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxByt
     active.current = controller;
     setBusy(true);
     setProgress(0);
-    setPreview(null);
+    setAnalysis(null);
     setError(null);
     setNotice("");
     try {
       const result = await uploadDataset(projectId, file, setProgress, controller.signal);
       if (!controller.signal.aborted) {
-        setPreview(result);
-        setNotice("CSV validated successfully.");
+        setAnalysis(result);
+        setNotice("CSV validated and schema detected successfully.");
       }
     } catch (cause) {
       if (controller.signal.aborted) setNotice("Upload canceled.");
@@ -75,7 +76,7 @@ export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxByt
       </h2>
       <p id={`${inputId}-help`} className="mt-3 text-sm text-muted-foreground">
         Choose a UTF-8 CSV with a header row. Up to {(maxBytes / 1048576).toLocaleString()} MiB.
-        Narra validates the file before showing a preview.
+        Narra validates the file and detects column types before showing a preview.
       </p>
       <div
         className={`mt-6 rounded-xl border-2 border-dashed p-7 text-center ${dragging ? "border-primary bg-primary/5" : "border-border"}`}
@@ -130,7 +131,9 @@ export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxByt
       {busy && (
         <div className="mt-5">
           <p role="status" className="mb-2 text-sm">
-            {progress < 100 ? `Uploading dataset · ${progress}%` : "Reading and validating CSV…"}
+            {progress < 100
+              ? `Uploading dataset · ${progress}%`
+              : "Validating CSV and detecting column types…"}
           </p>
           <progress
             className="h-2 w-full accent-primary"
@@ -151,10 +154,15 @@ export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxByt
         </p>
       )}
       <p className="mt-5 text-xs text-muted-foreground">
-        Your project details are saved. Dataset storage and automatic analysis are not available
-        yet.
+        Your project details are saved. Uploaded data and column metadata are temporary; statistics
+        and charts are coming next.
       </p>
-      {preview && <PreviewTable preview={preview} />}
+      {analysis && (
+        <>
+          <SchemaSummary columns={analysis.column_metadata} />
+          <PreviewTable preview={analysis.preview} />
+        </>
+      )}
     </section>
   );
 }

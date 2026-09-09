@@ -52,8 +52,8 @@ export function PreviewTable({ preview }: { preview: DatasetPreview }) {
         </table>
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        Values are shown as text. Column types and missing-value analysis will be added in later
-        stages. This preview is temporary and clears when you leave or reload the page.
+        Original values are shown as text. Blank or whitespace-only cells count as missing in the
+        schema summary. This preview is temporary and clears when you leave or reload the page.
       </p>
     </section>
   );

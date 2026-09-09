@@ -18,6 +18,31 @@ export const previewSchema = z
     "Invalid preview dimensions",
   );
 export type DatasetPreview = z.infer<typeof previewSchema>;
+export const columnMetadataSchema = z.object({
+  name: z.string(),
+  detected_type: z.enum(["numeric", "categorical", "datetime", "boolean", "text"]),
+  missing_count: z.number().int().nonnegative(),
+  missing_percentage: z.number().min(0).max(100),
+  unique_count: z.number().int().nonnegative(),
+  sample_values: z.array(z.string()).max(5),
+});
+export const analysisSchema = z
+  .object({
+    preview: previewSchema,
+    column_metadata: z.array(columnMetadataSchema).max(200),
+  })
+  .refine(
+    (value) =>
+      value.preview.column_count === value.column_metadata.length &&
+      value.column_metadata.every(
+        (column, index) =>
+          column.name === value.preview.columns[index] &&
+          column.missing_count <= value.preview.row_count &&
+          column.unique_count <= value.preview.row_count - column.missing_count,
+      ),
+    "Invalid schema dimensions",
+  );
+export type DatasetAnalysis = z.infer<typeof analysisSchema>;
 export const uploadErrorSchema = z.object({
   error: z.object({ code: z.string(), message: z.string() }),
 });

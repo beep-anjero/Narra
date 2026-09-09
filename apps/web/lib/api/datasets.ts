@@ -1,8 +1,8 @@
 import {
-  previewSchema,
+  analysisSchema,
   uploadErrorSchema,
   UploadError,
-  type DatasetPreview,
+  type DatasetAnalysis,
 } from "@/features/upload/contracts";
 
 export function uploadDataset(
@@ -10,7 +10,7 @@ export function uploadDataset(
   file: File,
   onProgress: (percent: number) => void,
   signal: AbortSignal,
-): Promise<DatasetPreview> {
+): Promise<DatasetAnalysis> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     const abort = () => xhr.abort();
@@ -47,9 +47,9 @@ export function uploadDataset(
         );
         return;
       }
-      const parsed = previewSchema.safeParse(payload);
+      const parsed = analysisSchema.safeParse(payload);
       if (!parsed.success) {
-        reject(new UploadError("invalid_response", "The server returned an invalid preview."));
+        reject(new UploadError("invalid_response", "The server returned an invalid analysis."));
         return;
       }
       resolve(parsed.data);
