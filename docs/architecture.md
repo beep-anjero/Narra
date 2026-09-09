@@ -172,7 +172,31 @@ remains later-stage work.
 ## Next stage
 
 Apply the projects migration and verify the hosted project lifecycle described in
-`docs/supabase-setup.md`. Stage 8 adds statistics only after explicit instruction.
+`docs/supabase-setup.md`. Stage 9 adds the dataset preview and statistics panel only
+after explicit instruction.
+
+## Stage 8 decisions
+
+- The existing full-frame analysis pipeline now also calls an independent
+  `statistics.py` service. Its `{summary, columns}` result is included in the
+  analysis response and available from the authenticated `/datasets/statistics`
+  endpoint. Normal uploads still make one analytics request.
+- Conversion rules moved into `column_values.py` so inference and statistics
+  agree about blanks, finite numbers, and complete dates. Source strings remain
+  untouched. Invalid parsed values have separate counts from missing cells.
+- Numeric summaries use sample standard deviation and linear quartiles. Scaling
+  protects mean/variance calculations from intermediate overflow; quartiles use
+  weighted interpolation on sorted original values to preserve small values.
+  Undefined or unrepresentable results are null. Float64 precision applies.
+- Frequency lists contain at most ten original categories, sorted by frequency
+  and then value. Date endpoints are normalized to UTC with elapsed days.
+  Dataset completeness counts blank cells and rows without blanks.
+- Pydantic uses discriminated column models and rejects non-finite JSON numbers.
+  The web Zod contract validates and retains statistics; omission is temporarily
+  accepted for rolling deployment with Stage 7 analytics. The visible statistics
+  panel and paginated table remain Stage 9 work.
+- No schema migration, storage, recommendation algorithm, or new dependency is
+  needed for this stage.
 
 ## Stage 7 decisions
 

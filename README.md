@@ -6,12 +6,13 @@ Narra is a planned full-stack application that examines uploaded CSV datasets an
 recommends useful statistics, visualizations, and deterministic insights. The MVP
 will use rules and calculations, with no AI/LLM functionality.
 
-**Current status: Stage 7 schema inference.** The monorepo, landing
+**Current status: Stage 8 statistics.** The monorepo, landing
 page, email/password auth, and owner-protected project creation, listing, editing,
 and deletion are implemented. Apply both migrations using [Supabase setup](docs/supabase-setup.md).
 Projects accept a validated CSV, infer column types from every data row, and return
 up to 100 preview rows (the current UI shows ten). Missing counts, unique counts,
-and sample values appear in the schema summary. Statistics, charts, and persisted datasets remain future stages. See
+and sample values appear in the schema summary. Analysis now includes full-dataset
+statistics and missing-value summaries; the statistics panel, charts, and persisted datasets remain future stages. See
 [analytics setup](apps/analytics/README.md) to run the required service locally.
 
 The landing page includes an explicitly labeled illustrative dashboard. **Try Demo
@@ -40,6 +41,8 @@ remains Stage 15.
   server-only FastAPI integration; uploads are not persisted in Stage 6.
 - Full-dataset schema inference for numeric, categorical, datetime, boolean, and
   text columns, with missing counts/percentages, unique values, and bounded samples.
+- Independent statistics service: numeric summaries, categorical frequencies,
+  datetime ranges, and dataset completeness, with typed API responses.
 - Vitest/React Testing Library tests for forms, navigation, auth actions, route
   guards, confirmation links, and redirects; PostgreSQL migration/RLS tests.
 
@@ -100,7 +103,7 @@ Open [localhost:3000](http://localhost:3000). The landing page and local test su
 run without external services. Account registration/login require a Supabase
 project and `apps/web/.env.local`; see [setup instructions](docs/supabase-setup.md).
 Without configuration, auth forms show an availability message and cannot submit.
-Python is not needed yet.
+Python is required for CSV analysis; see the analytics setup below.
 
 To run a production build locally:
 
@@ -255,11 +258,12 @@ Project management results and hosted checks are in the
 FastAPI results are in the [Stage 5 verification record](docs/stage-5-verification.md).
 CSV upload results are in the [Stage 6 verification record](docs/stage-6-verification.md).
 Schema rules and checks are in the [Stage 7 verification record](docs/stage-7-verification.md).
+Statistics rules and checks are in the [Stage 8 verification record](docs/stage-8-verification.md).
 
 ## Roadmap
 
 Work proceeds one stage at a time, with verification and a meaningful commit for
-each stage. Stage 8 begins only after explicit instruction.
+each stage. Stage 9 begins only after explicit instruction.
 
 1. **Complete:** monorepo and frontend foundation.
 2. **Complete:** branding, navbar, landing page, UI primitives, and responsive behavior.
@@ -268,8 +272,8 @@ each stage. Stage 8 begins only after explicit instruction.
 5. **Implemented:** FastAPI foundation, versioned health, CORS, and tests.
 6. **Implemented; server configuration required for live uploads:** CSV upload, validation, and temporary preview.
 7. **Implemented:** Schema inference, column metadata, and schema summary.
-8. **Next:** Statistics and missing-value analysis.
-9. Dataset preview.
+8. **Implemented:** Statistics and missing-value analysis.
+9. **Next:** Dataset preview, statistics panel, and pagination.
 10. Deterministic visualization recommendations.
 11. ECharts dashboard and KPIs.
 12. Deterministic insights, correlations, and outliers.

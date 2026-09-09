@@ -1,6 +1,6 @@
 # Narra analytics service
 
-Stage 7 adds deterministic schema inference to the authenticated CSV workflow. It validates UTF-8 CSV
+Stage 8 adds descriptive statistics to the authenticated CSV workflow. It validates UTF-8 CSV
 uploads, headers, duplicate columns, malformed records, actual byte and row limits,
 and returns no more than 100 preview rows plus metadata calculated from all rows.
 Files are not persisted yet.
@@ -27,7 +27,7 @@ in `pyproject.toml` and `uv.lock`. pnpm manages JavaScript; uv manages Python.
 ```
 
 Health is public and reports process liveness, not Supabase connectivity or dataset
-processing readiness. Only preview and schema analysis endpoints are implemented.
+processing readiness. Preview, schema analysis, and statistics endpoints are implemented.
 
 ## Configuration
 
@@ -67,7 +67,7 @@ default to 20 MiB and 100,000 data rows and are configured server-side.
 ## Schema analysis endpoint
 
 `POST /api/v1/datasets/analyze` accepts the same authenticated raw CSV request as
-preview. Its response is `{preview, column_metadata}`; each metadata item contains
+preview. Its response is `{preview, column_metadata, statistics}`; each metadata item contains
 `name`, `detected_type`, `missing_count`, `missing_percentage`, `unique_count`, and
 `sample_values`. The existing preview endpoint retains its original response.
 
@@ -98,8 +98,38 @@ CATEGORICAL_UNIQUE_RATIO_THRESHOLD=0.5
 SCHEMA_SAMPLE_SIZE=5
 ```
 
-Parse thresholds accept 0.5–1, categorical ratio 0–1, and samples 1–5. Numeric
-statistics, date ranges, and category frequencies are Stage 8 work.
+Parse thresholds accept 0.5–1, categorical ratio 0–1, and samples 1–5.
+
+## Statistics
+
+`POST /api/v1/datasets/statistics` accepts the same authenticated CSV request and
+returns `{summary, columns}`. The identical object is included in `/datasets/analyze`,
+so a normal upload does not send its CSV twice. No persistence or database change
+is involved. The preview-only endpoint remains unchanged.
+
+- Numeric: valid count, missing, invalid count, mean, median, sample standard
+  deviation (`ddof=1`), minimum, maximum, Q1, and Q3 (linear interpolation).
+- Categorical, boolean, and text: non-missing count, original-string unique count,
+  most frequent value, frequency, and up to ten categories. Ties sort by value;
+  original spelling and whitespace are preserved. Boolean spellings are not merged.
+- Datetime: valid count, missing, invalid count, earliest/latest ISO timestamps in
+  UTC, and elapsed days. Period aggregations are deferred to chart preparation.
+- Dataset: rows, columns, total/missing cells, missing percentage, complete rows,
+  and column counts for all five types. Complete means no blank cells, not that
+  every value parses successfully.
+
+Missing and parse failures are distinct. Numeric/datetime summaries exclude invalid
+values from calculations and report `invalid_count`; source data is unchanged.
+Unique counts still describe original non-missing strings, including invalid ones.
+Percentages are rounded to two decimals. Undefined standard deviation (one value)
+and unrepresentable floating-point results are `null`, never NaN or Infinity.
+Calculations use float64 precision, so very large integer measurements may round.
+Shared conversion helpers enforce the same rules as schema inference. Numeric
+scaling avoids intermediate overflow in sums and squared deviations.
+
+The web contract validates and retains these statistics for Stage 9. It temporarily
+accepts responses without statistics to support an independently deployed Stage 7
+analytics service. No statistics panel is implemented in Stage 8.
 
 ## Architecture
 
@@ -109,6 +139,8 @@ statistics, date ranges, and category frequencies are Stage 8 work.
 - `app/schemas/`: strict Pydantic response models.
 - `app/services/csv_parser.py`: strict validation and bounded pandas preview parsing.
 - `app/services/schema_detector.py`: full-data classification and column metadata.
+- `app/services/column_values.py`: shared missing, numeric, and datetime conversion.
+- `app/services/statistics.py`: independent full-data descriptive statistics.
 - `app/models/`, `app/utils/`: reserved until needed.
 - `tests/`: pytest HTTP, settings, CORS, and failure-contract tests.
 
