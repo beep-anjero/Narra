@@ -21,6 +21,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         Project settings
       </Link>
       <CsvUploader projectId={project.id} maxBytes={uploadLimit()} />
+      <Link
+        href={`/project/${project.id}/data`}
+        className="mt-6 inline-block text-primary underline"
+      >
+        Open dataset workspace (upload again)
+      </Link>
     </>
   );
 }
