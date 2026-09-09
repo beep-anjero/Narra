@@ -2,6 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.statistics import DatasetStatistics
+
 
 class DatasetPreview(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
@@ -32,3 +34,4 @@ class DatasetAnalysis(BaseModel):
 
     preview: DatasetPreview
     column_metadata: list[ColumnMetadata]
+    statistics: DatasetStatistics

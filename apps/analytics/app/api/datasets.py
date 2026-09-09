@@ -6,9 +6,11 @@ from starlette.concurrency import run_in_threadpool
 
 from app.schemas.dataset import DatasetAnalysis, DatasetPreview
 from app.schemas.error import ErrorResponse
+from app.schemas.statistics import DatasetStatistics
 from app.services.csv_parser import parse_csv, read_csv, validate_file_metadata
 from app.services.errors import DatasetError
 from app.services.schema_detector import infer_schema
+from app.services.statistics import calculate_statistics
 from app.settings import Settings
 
 router = APIRouter(tags=["Datasets"])
@@ -91,6 +93,27 @@ async def analyze_dataset(request: Request, response: Response) -> DatasetAnalys
         settings.max_dataset_rows,
     )
     metadata = await run_in_threadpool(infer_schema, parsed.frame, settings)
-    result = DatasetAnalysis(preview=parsed.preview, column_metadata=metadata)
+    statistics = await run_in_threadpool(calculate_statistics, parsed.frame, metadata)
+    result = DatasetAnalysis(
+        preview=parsed.preview, column_metadata=metadata, statistics=statistics
+    )
     response.headers["Cache-Control"] = "no-store"
     return result
+
+
+@router.post(
+    "/datasets/statistics",
+    response_model=DatasetStatistics,
+    responses=ERROR_RESPONSES,
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {"text/csv": {"schema": {"type": "string", "format": "binary"}}},
+        }
+    },
+)
+async def dataset_statistics(request: Request, response: Response) -> DatasetStatistics:
+    # Reuse the same authenticated, bounded pipeline; no second upload is needed
+    # by the web application, which receives statistics in its analyze response.
+    analysis = await analyze_dataset(request, response)
+    return analysis.statistics

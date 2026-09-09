@@ -91,7 +91,7 @@ def test_analyze_uses_values_beyond_preview_and_applies_settings():
     assert response.headers["cache-control"] == "no-store"
 
 
-@pytest.mark.parametrize("endpoint", ["preview", "analyze"])
+@pytest.mark.parametrize("endpoint", ["preview", "analyze", "statistics"])
 def test_both_upload_endpoints_enforce_auth_and_validation(upload_client, endpoint):
     url = f"/api/v1/datasets/{endpoint}"
     assert upload_client.post(url, content=b"A\n1").status_code == 401
@@ -99,3 +99,16 @@ def test_both_upload_endpoints_enforce_auth_and_validation(upload_client, endpoi
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "duplicate_headers"
     assert upload_client.post(url, content=b"a" * 101, headers=HEADERS).status_code == 413
+
+
+def test_statistics_endpoint_matches_analysis_and_uses_entire_dataset():
+    content = ("Score\n" + "1\n" * 100 + "101\n").encode()
+    with TestClient(create_app(Settings(_env_file=None, analytics_api_key=KEY))) as client:
+        analysis = client.post("/api/v1/datasets/analyze", content=content, headers=HEADERS)
+        statistics = client.post("/api/v1/datasets/statistics", content=content, headers=HEADERS)
+    assert analysis.status_code == statistics.status_code == 200
+    assert statistics.json() == analysis.json()["statistics"]
+    assert statistics.headers["cache-control"] == "no-store"
+    assert statistics.json()["columns"][0]["maximum"] == 101
+    assert statistics.json()["columns"][0]["mean"] == pytest.approx(201 / 101)
+    assert statistics.json()["summary"]["row_count"] == 101
