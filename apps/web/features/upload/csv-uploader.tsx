@@ -7,6 +7,7 @@ import { uploadDataset } from "@/lib/api/datasets";
 import { validateUpload, type DatasetAnalysis } from "./contracts";
 import { PreviewTable } from "./preview-table";
 import { SchemaSummary } from "./schema-summary";
+import { StatisticsPanel } from "./statistics-panel";
 
 export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxBytes: number }) {
   const inputId = useId();
@@ -76,7 +77,8 @@ export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxByt
       </h2>
       <p id={`${inputId}-help`} className="mt-3 text-sm text-muted-foreground">
         Choose a UTF-8 CSV with a header row. Up to {(maxBytes / 1048576).toLocaleString()} MiB.
-        Narra validates the file and detects column types before showing a preview.
+        Narra validates the file, detects column types, and calculates statistics before showing a
+        preview.
       </p>
       <div
         className={`mt-6 rounded-xl border-2 border-dashed p-7 text-center ${dragging ? "border-primary bg-primary/5" : "border-border"}`}
@@ -133,7 +135,7 @@ export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxByt
           <p role="status" className="mb-2 text-sm">
             {progress < 100
               ? `Uploading dataset · ${progress}%`
-              : "Validating CSV and detecting column types…"}
+              : "Validating CSV, detecting types, and calculating statistics…"}
           </p>
           <progress
             className="h-2 w-full accent-primary"
@@ -154,13 +156,14 @@ export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxByt
         </p>
       )}
       <p className="mt-5 text-xs text-muted-foreground">
-        Your project details are saved. Uploaded data and column metadata are temporary; statistics
-        and charts are coming next.
+        Your project details are saved. Uploaded data and statistics are temporary. Charts are
+        coming in a later stage.
       </p>
       {analysis && (
         <>
+          <StatisticsPanel statistics={analysis.statistics} />
+          <PreviewTable preview={analysis.preview} columns={analysis.column_metadata} />
           <SchemaSummary columns={analysis.column_metadata} />
-          <PreviewTable preview={analysis.preview} />
         </>
       )}
     </section>

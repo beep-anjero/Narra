@@ -1,13 +1,5 @@
-import { Badge } from "@/components/ui/badge";
+import { ColumnTypeBadge } from "./column-type-badge";
 import type { DatasetAnalysis } from "./contracts";
-
-const typeLabels: Record<DatasetAnalysis["column_metadata"][number]["detected_type"], string> = {
-  numeric: "Numeric",
-  categorical: "Categorical",
-  datetime: "Date/time",
-  boolean: "Boolean",
-  text: "Text",
-};
 
 export function SchemaSummary({ columns }: { columns: DatasetAnalysis["column_metadata"] }) {
   return (
@@ -55,7 +47,7 @@ export function SchemaSummary({ columns }: { columns: DatasetAnalysis["column_me
                   {column.name}
                 </th>
                 <td className="px-4 py-3">
-                  <Badge variant="secondary">{typeLabels[column.detected_type]}</Badge>
+                  <ColumnTypeBadge type={column.detected_type} />
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   {column.missing_count.toLocaleString()} (
