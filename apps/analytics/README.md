@@ -1,6 +1,6 @@
 # Narra analytics service
 
-Stage 8 adds descriptive statistics to the authenticated CSV workflow. It validates UTF-8 CSV
+Stage 10 adds ranked visualization recommendations to the authenticated CSV workflow. It validates UTF-8 CSV
 uploads, headers, duplicate columns, malformed records, actual byte and row limits,
 and returns no more than 100 preview rows plus metadata calculated from all rows.
 Files are not persisted yet.
@@ -27,7 +27,7 @@ in `pyproject.toml` and `uv.lock`. pnpm manages JavaScript; uv manages Python.
 ```
 
 Health is public and reports process liveness, not Supabase connectivity or dataset
-processing readiness. Preview, schema analysis, and statistics endpoints are implemented.
+processing readiness. Preview, schema analysis, statistics, and recommendation endpoints are implemented.
 
 ## Configuration
 
@@ -67,7 +67,7 @@ default to 20 MiB and 100,000 data rows and are configured server-side.
 ## Schema analysis endpoint
 
 `POST /api/v1/datasets/analyze` accepts the same authenticated raw CSV request as
-preview. Its response is `{preview, column_metadata, statistics}`; each metadata item contains
+preview. Its response is `{preview, column_metadata, statistics, recommendations}`; each metadata item contains
 `name`, `detected_type`, `missing_count`, `missing_percentage`, `unique_count`, and
 `sample_values`. The existing preview endpoint retains its original response.
 
@@ -133,6 +133,47 @@ analytics service. No statistics panel is implemented in Stage 8.
 
 ## Architecture
 
+### Visualization recommendations
+
+`POST /api/v1/datasets/recommend-visualizations` accepts the same authenticated raw
+CSV request and returns `{recommendations}`. The combined analysis response also
+includes recommendations, so normal uploads make only one request. Standalone
+statistics and recommendation endpoints share validation and inference but execute
+only their requested calculation.
+
+Rules: datetime + numeric → line; category + numeric → bar; numeric pair → scatter;
+numeric → histogram; category → donut when it has 2–8 values, otherwise bar for
+9–30 values; datetime alone → record-frequency line. Categories above 30 values,
+constant columns, text, and likely high-cardinality identifiers are omitted.
+Numeric/date conversion uses the shared inference rules. Paired charts require at
+least two overlapping valid rows and variation in both axes on those rows.
+
+Grouped measures default to mean. Whole-word name hints such as Revenue, Sales,
+Cost, Spend, Units, and Quantity select sum, unless a non-additive hint such as
+Rate, Percentage, Average, Score, Age, or Temperature is present. These are simple
+heuristics, not guarantees about business meaning.
+
+Score = base + 0.20 × valid-row coverage + 0.10 × min(valid rows / 30, 1)
+
+- 0.05 for a sum semantic hint, clamped to 0–1 and rounded to four decimals.
+  Bases: numeric time series 0.65, grouped bar 0.60, record-frequency line 0.58,
+  scatter 0.55, donut 0.54, histogram/category-frequency bar 0.50. Scores describe
+  chart suitability, not statistical significance, truth, or causation.
+
+For bounded pairwise work, select up to eight numeric, eight categorical, and four
+datetime columns by valid-row count, additive name hint, then source order.
+Candidates sort by descending score with stable source/rule order for ties. Return
+at most six suggestions and at most two of any chart type to limit redundancy.
+Sparse or unsupported datasets may yield fewer suggestions or an empty list.
+
+Each suggestion contains `chart_type`, `title`, `x_column`, nullable `y_column`,
+`aggregation`, `reason`, `score`, and `valid_rows`. The TypeScript contract validates
+column references, type compatibility, bounds, and aggregation. Older services may
+omit recommendations during deployment. Aggregation data and ECharts rendering
+belong to Stage 11; no chart data is fabricated in Stage 10.
+
+### Service boundaries
+
 - `app/main.py`: application factory and composition.
 - `app/settings.py`: validated Pydantic settings.
 - `app/api/`: thin versioned router, health handler, and error handlers.
@@ -141,6 +182,7 @@ analytics service. No statistics panel is implemented in Stage 8.
 - `app/services/schema_detector.py`: full-data classification and column metadata.
 - `app/services/column_values.py`: shared missing, numeric, and datetime conversion.
 - `app/services/statistics.py`: independent full-data descriptive statistics.
+- `app/services/visualization_recommender.py`: bounded deterministic chart ranking.
 - `app/models/`, `app/utils/`: reserved until needed.
 - `tests/`: pytest HTTP, settings, CORS, and failure-contract tests.
 

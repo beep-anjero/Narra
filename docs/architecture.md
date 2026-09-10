@@ -172,8 +172,25 @@ remains later-stage work.
 ## Next stage
 
 Apply the projects migration and verify the hosted project lifecycle described in
-`docs/supabase-setup.md`. Stage 10 adds visualization recommendations only
+`docs/supabase-setup.md`. Stage 11 adds chart rendering and KPIs only
 after explicit instruction.
+
+## Stage 10 decisions
+
+- `visualization_recommender.py` independently evaluates full-data valid values
+  using shared numeric/date parsing. Constant, text, and likely identifier columns
+  are excluded. Paired charts must have overlapping valid rows with variation.
+- Recommendation scoring combines type compatibility, cardinality eligibility,
+  valid-row coverage, sample size, and conservative aggregation name hints.
+  It does not calculate correlations or make claims about statistical significance.
+- Candidate columns are bounded before pair generation; ranked results are capped
+  at six, with at most two per chart type. Stable iteration and sorting make ties
+  deterministic. Rules, limits, and score weights are documented in the analytics README.
+- The analysis response includes typed recommendations without an additional CSV
+  upload. The dedicated endpoint shares parsing/inference but avoids unnecessary
+  statistics computation. The statistics endpoint likewise skips recommendations.
+- The web contract retains and validates recommendation axes and aggregations.
+  No rendering, chart aggregation, persistence, dependency, or migration is added.
 
 ## Stage 9 decisions
 
