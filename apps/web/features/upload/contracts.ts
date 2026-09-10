@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { statisticsSchema } from "./statistics-contract";
 import { recommendationSchema } from "./recommendation-contract";
+import { chartDataSchema } from "@/features/charts/contracts";
 
 export const previewSchema = z
   .object({
@@ -36,6 +37,7 @@ export const analysisSchema = z
     statistics: statisticsSchema.optional(),
     // Earlier analytics deployments may omit recommendations during rollout.
     recommendations: z.array(recommendationSchema).max(6).optional(),
+    charts: z.array(chartDataSchema).max(6).optional(),
   })
   .refine(
     (value) =>
@@ -121,7 +123,24 @@ export const analysisSchema = z
         }
       })
     );
-  }, "Invalid visualization recommendations");
+  }, "Invalid visualization recommendations")
+  .refine(
+    ({ charts, recommendations }) =>
+      !charts ||
+      (!!recommendations &&
+        charts.length === recommendations.length &&
+        charts.every(
+          (chart, index) =>
+            chart.recommendation_index === index &&
+            (!chart.error || chart.data.length === 0) &&
+            chart.data.every((point) =>
+              recommendations[index]?.chart_type === "scatter"
+                ? typeof point.x === "number"
+                : typeof point.x === "string",
+            ),
+        )),
+    "Invalid chart data",
+  );
 export type DatasetAnalysis = z.infer<typeof analysisSchema>;
 export const uploadErrorSchema = z.object({
   error: z.object({ code: z.string(), message: z.string() }),

@@ -8,6 +8,7 @@ import { validateUpload, type DatasetAnalysis } from "./contracts";
 import { PreviewTable } from "./preview-table";
 import { SchemaSummary } from "./schema-summary";
 import { StatisticsPanel } from "./statistics-panel";
+import { GeneratedDashboard } from "@/features/dashboard/generated-dashboard";
 
 export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxBytes: number }) {
   const inputId = useId();
@@ -135,7 +136,7 @@ export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxByt
           <p role="status" className="mb-2 text-sm">
             {progress < 100
               ? `Uploading dataset · ${progress}%`
-              : "Validating CSV, detecting types, and calculating statistics…"}
+              : "Analyzing dataset and preparing your dashboard…"}
           </p>
           <progress
             className="h-2 w-full accent-primary"
@@ -156,11 +157,12 @@ export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxByt
         </p>
       )}
       <p className="mt-5 text-xs text-muted-foreground">
-        Your project details are saved. Uploaded data and statistics are temporary. Charts are
-        coming in a later stage.
+        Your project details are saved. Uploaded data, statistics, and charts are temporary until
+        you leave or reload this page.
       </p>
       {analysis && (
         <>
+          <GeneratedDashboard analysis={analysis} />
           <StatisticsPanel statistics={analysis.statistics} />
           <PreviewTable preview={analysis.preview} columns={analysis.column_metadata} />
           <SchemaSummary columns={analysis.column_metadata} />

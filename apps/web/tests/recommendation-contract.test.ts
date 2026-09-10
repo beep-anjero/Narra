@@ -59,3 +59,23 @@ it("accepts no suitable charts and rejects more than six", () => {
       .success,
   ).toBe(false);
 });
+
+it("retains bounded chart data associated with its recommendation", () => {
+  const charts = [
+    { recommendation_index: 0, data: [{ x: "1–2", y: 2 }], note: "All valid rows", error: null },
+  ];
+  expect(analysisSchema.parse({ ...analysis, charts }).charts).toEqual(charts);
+});
+
+it.each([
+  { recommendation_index: 1, data: [] },
+  { recommendation_index: 0, data: [{ x: 1, y: 2 }] },
+  { recommendation_index: 0, data: [{ x: "1–2", y: Infinity }] },
+])("rejects incompatible chart data: %j", (chart) => {
+  expect(
+    analysisSchema.safeParse({
+      ...analysis,
+      charts: [{ ...chart, note: "All values", error: null }],
+    }).success,
+  ).toBe(false);
+});
