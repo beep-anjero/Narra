@@ -127,4 +127,8 @@ def test_recommendation_endpoint_matches_analysis_and_uses_full_data():
     assert result.json()["recommendations"] == analysis.json()["recommendations"]
     assert result.json()["recommendations"][0]["chart_type"] == "histogram"
     assert result.json()["recommendations"][0]["valid_rows"] == 101
+    charts = analysis.json()["charts"]
+    assert charts[0]["recommendation_index"] == 0
+    assert charts[0]["error"] is None
+    assert sum(point["y"] for point in charts[0]["data"]) == 101
     assert result.headers["cache-control"] == "no-store"

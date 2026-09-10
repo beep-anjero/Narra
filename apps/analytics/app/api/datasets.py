@@ -8,6 +8,7 @@ from app.schemas.dataset import ColumnMetadata, DatasetAnalysis, DatasetPreview
 from app.schemas.error import ErrorResponse
 from app.schemas.statistics import DatasetStatistics
 from app.schemas.visualization import VisualizationRecommendations
+from app.services.chart_data import prepare_chart_data
 from app.services.csv_parser import ParsedCsv, parse_csv, read_csv, validate_file_metadata
 from app.services.errors import DatasetError
 from app.services.schema_detector import infer_schema
@@ -88,11 +89,13 @@ async def analyze_dataset(request: Request, response: Response) -> DatasetAnalys
     parsed, metadata = await _dataset_with_schema(request)
     statistics = await run_in_threadpool(calculate_statistics, parsed.frame, metadata)
     recommendations = await run_in_threadpool(recommend_visualizations, parsed.frame, metadata)
+    charts = await run_in_threadpool(prepare_chart_data, parsed.frame, recommendations)
     result = DatasetAnalysis(
         preview=parsed.preview,
         column_metadata=metadata,
         statistics=statistics,
         recommendations=recommendations,
+        charts=charts,
     )
     response.headers["Cache-Control"] = "no-store"
     return result
