@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { statisticsSchema } from "./statistics-contract";
+import { recommendationSchema } from "./recommendation-contract";
 
 export const previewSchema = z
   .object({
@@ -33,6 +34,8 @@ export const analysisSchema = z
     column_metadata: z.array(columnMetadataSchema).max(200),
     // Accept Stage 7 services during deployment; validate and retain Stage 8 data.
     statistics: statisticsSchema.optional(),
+    // Earlier analytics deployments may omit recommendations during rollout.
+    recommendations: z.array(recommendationSchema).max(6).optional(),
   })
   .refine(
     (value) =>
@@ -68,7 +71,57 @@ export const analysisSchema = z
         );
       })
     );
-  }, "Invalid statistics dimensions");
+  }, "Invalid statistics dimensions")
+  .refine(({ column_metadata, preview, recommendations }) => {
+    return (
+      !recommendations ||
+      recommendations.every((item) => {
+        const x = column_metadata.find((column) => column.name === item.x_column);
+        const y = column_metadata.find((column) => column.name === item.y_column);
+        if (
+          !x ||
+          item.valid_rows > preview.row_count ||
+          item.valid_rows > preview.row_count - x.missing_count
+        )
+          return false;
+        if (item.y_column !== null && (!y || item.valid_rows > preview.row_count - y.missing_count))
+          return false;
+        const category = x.detected_type === "categorical" || x.detected_type === "boolean";
+        switch (item.chart_type) {
+          case "histogram":
+            return (
+              x.detected_type === "numeric" &&
+              item.y_column === null &&
+              item.aggregation === "count"
+            );
+          case "donut":
+            return (
+              category &&
+              x.unique_count >= 2 &&
+              x.unique_count <= 8 &&
+              item.y_column === null &&
+              item.aggregation === "count"
+            );
+          case "scatter":
+            return (
+              x.detected_type === "numeric" &&
+              y?.detected_type === "numeric" &&
+              x.name !== y.name &&
+              item.aggregation === "none"
+            );
+          case "line":
+          case "bar":
+            return (
+              (item.chart_type === "line" ? x.detected_type === "datetime" : category) &&
+              (item.y_column === null
+                ? item.aggregation === "count"
+                : y?.detected_type === "numeric" &&
+                  (item.aggregation === "sum" || item.aggregation === "mean"))
+            );
+        }
+      })
+    );
+  }, "Invalid visualization recommendations");
 export type DatasetAnalysis = z.infer<typeof analysisSchema>;
 export const uploadErrorSchema = z.object({
   error: z.object({ code: z.string(), message: z.string() }),
