@@ -92,7 +92,8 @@ def test_analyze_uses_values_beyond_preview_and_applies_settings():
 
 
 @pytest.mark.parametrize(
-    "endpoint", ["preview", "analyze", "statistics", "recommend-visualizations"]
+    "endpoint",
+    ["preview", "analyze", "statistics", "recommend-visualizations", "generate-insights"],
 )
 def test_both_upload_endpoints_enforce_auth_and_validation(upload_client, endpoint):
     url = f"/api/v1/datasets/{endpoint}"

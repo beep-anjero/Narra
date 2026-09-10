@@ -2,6 +2,7 @@ import { z } from "zod";
 import { statisticsSchema } from "./statistics-contract";
 import { recommendationSchema } from "./recommendation-contract";
 import { chartDataSchema } from "@/features/charts/contracts";
+import { insightSchema } from "@/features/insights/contracts";
 
 export const previewSchema = z
   .object({
@@ -38,6 +39,7 @@ export const analysisSchema = z
     // Earlier analytics deployments may omit recommendations during rollout.
     recommendations: z.array(recommendationSchema).max(6).optional(),
     charts: z.array(chartDataSchema).max(6).optional(),
+    insights: z.array(insightSchema).max(12).optional(),
   })
   .refine(
     (value) =>

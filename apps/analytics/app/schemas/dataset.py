@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.chart import ChartData
+from app.schemas.insight import Insight
 from app.schemas.statistics import DatasetStatistics
 from app.schemas.visualization import VisualizationRecommendation
 
@@ -39,3 +40,4 @@ class DatasetAnalysis(BaseModel):
     statistics: DatasetStatistics
     recommendations: list[VisualizationRecommendation] = Field(max_length=6)
     charts: list[ChartData] = Field(max_length=6)
+    insights: list[Insight] = Field(max_length=12)

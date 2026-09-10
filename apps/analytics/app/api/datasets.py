@@ -6,11 +6,13 @@ from starlette.concurrency import run_in_threadpool
 
 from app.schemas.dataset import ColumnMetadata, DatasetAnalysis, DatasetPreview
 from app.schemas.error import ErrorResponse
+from app.schemas.insight import DatasetInsights
 from app.schemas.statistics import DatasetStatistics
 from app.schemas.visualization import VisualizationRecommendations
 from app.services.chart_data import prepare_chart_data
 from app.services.csv_parser import ParsedCsv, parse_csv, read_csv, validate_file_metadata
 from app.services.errors import DatasetError
+from app.services.insight_generator import generate_insights
 from app.services.schema_detector import infer_schema
 from app.services.statistics import calculate_statistics
 from app.services.visualization_recommender import recommend_visualizations
@@ -90,12 +92,14 @@ async def analyze_dataset(request: Request, response: Response) -> DatasetAnalys
     statistics = await run_in_threadpool(calculate_statistics, parsed.frame, metadata)
     recommendations = await run_in_threadpool(recommend_visualizations, parsed.frame, metadata)
     charts = await run_in_threadpool(prepare_chart_data, parsed.frame, recommendations)
+    insights = await run_in_threadpool(generate_insights, parsed.frame, metadata)
     result = DatasetAnalysis(
         preview=parsed.preview,
         column_metadata=metadata,
         statistics=statistics,
         recommendations=recommendations,
         charts=charts,
+        insights=insights,
     )
     response.headers["Cache-Control"] = "no-store"
     return result
@@ -151,3 +155,13 @@ async def dataset_recommendations(
     result = await run_in_threadpool(recommend_visualizations, parsed.frame, metadata)
     response.headers["Cache-Control"] = "no-store"
     return VisualizationRecommendations(recommendations=result)
+
+
+@router.post(
+    "/datasets/generate-insights", response_model=DatasetInsights, responses=ERROR_RESPONSES
+)
+async def dataset_insights(request: Request, response: Response) -> DatasetInsights:
+    parsed, metadata = await _dataset_with_schema(request)
+    result = await run_in_threadpool(generate_insights, parsed.frame, metadata)
+    response.headers["Cache-Control"] = "no-store"
+    return DatasetInsights(insights=result)

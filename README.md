@@ -6,7 +6,7 @@ Narra is a planned full-stack application that examines uploaded CSV datasets an
 recommends useful statistics, visualizations, and deterministic insights. The MVP
 will use rules and calculations, with no AI/LLM functionality.
 
-**Current status: Stage 11 generated dashboard.** The monorepo, landing
+**Current status: Stage 12 deterministic insights.** The monorepo, landing
 page, email/password auth, and owner-protected project creation, listing, editing,
 and deletion are implemented. Apply both migrations using [Supabase setup](docs/supabase-setup.md).
 Projects accept a validated CSV, infer column types from every data row, and return
@@ -288,7 +288,7 @@ each stage. Stage 12 begins only after explicit instruction.
 9. **Implemented:** Dataset preview, statistics panel, and pagination.
 10. **Implemented:** Deterministic visualization recommendations.
 11. **Implemented:** ECharts dashboard and KPIs.
-12. **Next:** Deterministic insights, correlations, and outliers.
+12. **Implemented:** Deterministic insights, correlations, and outliers.
 13. Synchronized dashboard filters.
 14. Dataset storage and saved project restoration.
 15. Sample datasets and demo flow.
