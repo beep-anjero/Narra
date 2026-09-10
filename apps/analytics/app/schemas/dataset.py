@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.statistics import DatasetStatistics
+from app.schemas.visualization import VisualizationRecommendation
 
 
 class DatasetPreview(BaseModel):
@@ -35,3 +36,4 @@ class DatasetAnalysis(BaseModel):
     preview: DatasetPreview
     column_metadata: list[ColumnMetadata]
     statistics: DatasetStatistics
+    recommendations: list[VisualizationRecommendation] = Field(max_length=6)

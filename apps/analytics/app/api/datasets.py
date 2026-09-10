@@ -4,13 +4,15 @@ from urllib.parse import unquote
 from fastapi import APIRouter, Request, Response
 from starlette.concurrency import run_in_threadpool
 
-from app.schemas.dataset import DatasetAnalysis, DatasetPreview
+from app.schemas.dataset import ColumnMetadata, DatasetAnalysis, DatasetPreview
 from app.schemas.error import ErrorResponse
 from app.schemas.statistics import DatasetStatistics
-from app.services.csv_parser import parse_csv, read_csv, validate_file_metadata
+from app.schemas.visualization import VisualizationRecommendations
+from app.services.csv_parser import ParsedCsv, parse_csv, read_csv, validate_file_metadata
 from app.services.errors import DatasetError
 from app.services.schema_detector import infer_schema
 from app.services.statistics import calculate_statistics
+from app.services.visualization_recommender import recommend_visualizations
 from app.settings import Settings
 
 router = APIRouter(tags=["Datasets"])
@@ -83,6 +85,20 @@ async def preview_dataset(request: Request, response: Response) -> DatasetPrevie
     },
 )
 async def analyze_dataset(request: Request, response: Response) -> DatasetAnalysis:
+    parsed, metadata = await _dataset_with_schema(request)
+    statistics = await run_in_threadpool(calculate_statistics, parsed.frame, metadata)
+    recommendations = await run_in_threadpool(recommend_visualizations, parsed.frame, metadata)
+    result = DatasetAnalysis(
+        preview=parsed.preview,
+        column_metadata=metadata,
+        statistics=statistics,
+        recommendations=recommendations,
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return result
+
+
+async def _dataset_with_schema(request: Request) -> tuple[ParsedCsv, list[ColumnMetadata]]:
     content, filename, mime, settings = await _validated_upload(request)
     parsed = await run_in_threadpool(
         read_csv,
@@ -93,12 +109,7 @@ async def analyze_dataset(request: Request, response: Response) -> DatasetAnalys
         settings.max_dataset_rows,
     )
     metadata = await run_in_threadpool(infer_schema, parsed.frame, settings)
-    statistics = await run_in_threadpool(calculate_statistics, parsed.frame, metadata)
-    result = DatasetAnalysis(
-        preview=parsed.preview, column_metadata=metadata, statistics=statistics
-    )
-    response.headers["Cache-Control"] = "no-store"
-    return result
+    return parsed, metadata
 
 
 @router.post(
@@ -113,7 +124,27 @@ async def analyze_dataset(request: Request, response: Response) -> DatasetAnalys
     },
 )
 async def dataset_statistics(request: Request, response: Response) -> DatasetStatistics:
-    # Reuse the same authenticated, bounded pipeline; no second upload is needed
-    # by the web application, which receives statistics in its analyze response.
-    analysis = await analyze_dataset(request, response)
-    return analysis.statistics
+    parsed, metadata = await _dataset_with_schema(request)
+    result = await run_in_threadpool(calculate_statistics, parsed.frame, metadata)
+    response.headers["Cache-Control"] = "no-store"
+    return result
+
+
+@router.post(
+    "/datasets/recommend-visualizations",
+    response_model=VisualizationRecommendations,
+    responses=ERROR_RESPONSES,
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {"text/csv": {"schema": {"type": "string", "format": "binary"}}},
+        }
+    },
+)
+async def dataset_recommendations(
+    request: Request, response: Response
+) -> VisualizationRecommendations:
+    parsed, metadata = await _dataset_with_schema(request)
+    result = await run_in_threadpool(recommend_visualizations, parsed.frame, metadata)
+    response.headers["Cache-Control"] = "no-store"
+    return VisualizationRecommendations(recommendations=result)
