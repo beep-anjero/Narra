@@ -24,10 +24,10 @@ data in the database, storage, or browser storage. Reloading clears the preview.
 
 ## Status
 
-Stages 1–7 establish the frontend, marketing page, Supabase authentication,
-owner-protected project management, validated CSV previews, and full-dataset schema
-inference. Both applications are executable independently. Hosted database verification
-remains pending; statistics, charts, and CSV storage remain later-stage work.
+Stages 1–11 establish the frontend, authentication, owner-protected projects,
+validated CSV previews, schema inference, statistics, recommendations, and generated
+ECharts dashboards. Both applications are executable independently. Hosted database
+verification remains pending; insights, global filters, and CSV storage are later stages.
 
 ## Planned service boundaries
 
@@ -172,8 +172,33 @@ remains later-stage work.
 ## Next stage
 
 Apply the projects migration and verify the hosted project lifecycle described in
-`docs/supabase-setup.md`. Stage 11 adds chart rendering and KPIs only
+`docs/supabase-setup.md`. Stage 12 adds deterministic insights only
 after explicit instruction.
+
+## Stage 11 decisions
+
+- Full-data chart preparation runs in FastAPI alongside statistics and ranking.
+  The 100-row browser preview is never used to calculate chart totals. Bounded
+  payloads avoid repeatedly sending entire datasets between the two applications.
+- The independent chart service produces category aggregations, bounded observed
+  UTC periods, histograms, and explicitly sampled scatter points. Per-chart numeric
+  failures are represented without discarding successful analysis results.
+- `features/charts` owns typed plotting data, pure ECharts options, and a memoized
+  renderer. ECharts 6.1.0 is pinned. Only needed modules and SVG rendering are
+  registered; the runtime loads on demand in an effect and is disposed on unmount.
+  ResizeObserver keeps charts aligned with container changes. Tooltips render as
+  rich text rather than raw HTML, and decorative animation is disabled.
+- `features/dashboard` composes ranked charts, a main chart, secondary chart grid,
+  and KPI cards. KPI selection uses real full-data statistics with explicit averages
+  for recognizable numeric names and structural fallbacks. It does not invent units.
+- Chart notes disclose aggregation, omitted periods, and sampling. Semantic table
+  alternatives show at most 50 plotted values per chart. Loading, unavailable-data,
+  unsupported-dataset, and renderer-error states are implemented.
+- No global dashboard store, persistence, insights, or cross-chart filters are
+  added early. Dataset state still clears on navigation/reload.
+
+Implementation references: [ECharts modular imports](https://echarts.apache.org/handbook/en/basics/import/)
+and [container resize/disposal](https://echarts.apache.org/handbook/en/concepts/chart-size/).
 
 ## Stage 10 decisions
 

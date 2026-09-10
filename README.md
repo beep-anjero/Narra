@@ -6,14 +6,15 @@ Narra is a planned full-stack application that examines uploaded CSV datasets an
 recommends useful statistics, visualizations, and deterministic insights. The MVP
 will use rules and calculations, with no AI/LLM functionality.
 
-**Current status: Stage 10 visualization recommendations.** The monorepo, landing
+**Current status: Stage 11 generated dashboard.** The monorepo, landing
 page, email/password auth, and owner-protected project creation, listing, editing,
 and deletion are implemented. Apply both migrations using [Supabase setup](docs/supabase-setup.md).
 Projects accept a validated CSV, infer column types from every data row, and return
 up to 100 preview rows with pagination, search, and natural text sorting. Missing counts, unique counts,
 and sample values appear in the schema summary. Analysis now includes full-dataset
 statistics and missing-value summaries displayed in a column statistics panel.
-Charts and persisted datasets remain future stages. See
+Recommended charts now render automatically with KPI cards and bounded full-data
+aggregations. Persisted datasets remain a future stage. See
 [analytics setup](apps/analytics/README.md) to run the required service locally.
 
 The landing page includes an explicitly labeled illustrative dashboard. **Try Demo
@@ -48,6 +49,8 @@ remains Stage 15.
   and sorting; full-dataset statistics and an owner-protected dataset workspace.
 - Deterministic ranked visualization recommendations with compatibility rules,
   usable-row checks, bounded scoring, and up to six suggestions per dataset.
+- Apache ECharts line, bar, scatter, histogram, and donut charts; responsive KPI
+  cards, zoomable axes, legends, chart descriptions, and bounded data tables.
 - Vitest/React Testing Library tests for forms, navigation, auth actions, route
   guards, confirmation links, and redirects; PostgreSQL migration/RLS tests.
 
@@ -199,8 +202,9 @@ Auth, and Storage with Row Level Security.
 
 See [architecture decisions](docs/architecture.md) for the planned service diagram,
 feature boundaries, and stage decisions. Zod and Supabase client dependencies are
-now installed. ECharts and shared dashboard state remain deferred to their feature
-stages. FastAPI, Pydantic, pandas, and NumPy power the validated CSV preview.
+now installed. ECharts renders generated dashboards; shared dashboard state remains
+deferred until global filters need it. FastAPI, Pydantic, pandas, and NumPy prepare
+full-data statistics and bounded chart payloads.
 
 ## Authentication and database setup
 
@@ -266,11 +270,12 @@ Schema rules and checks are in the [Stage 7 verification record](docs/stage-7-ve
 Statistics rules and checks are in the [Stage 8 verification record](docs/stage-8-verification.md).
 Dataset exploration checks are in the [Stage 9 verification record](docs/stage-9-verification.md).
 Recommendation rules and checks are in the [Stage 10 verification record](docs/stage-10-verification.md).
+Generated dashboard checks are in the [Stage 11 verification record](docs/stage-11-verification.md).
 
 ## Roadmap
 
 Work proceeds one stage at a time, with verification and a meaningful commit for
-each stage. Stage 11 begins only after explicit instruction.
+each stage. Stage 12 begins only after explicit instruction.
 
 1. **Complete:** monorepo and frontend foundation.
 2. **Complete:** branding, navbar, landing page, UI primitives, and responsive behavior.
@@ -282,8 +287,8 @@ each stage. Stage 11 begins only after explicit instruction.
 8. **Implemented:** Statistics and missing-value analysis.
 9. **Implemented:** Dataset preview, statistics panel, and pagination.
 10. **Implemented:** Deterministic visualization recommendations.
-11. **Next:** ECharts dashboard and KPIs.
-12. Deterministic insights, correlations, and outliers.
+11. **Implemented:** ECharts dashboard and KPIs.
+12. **Next:** Deterministic insights, correlations, and outliers.
 13. Synchronized dashboard filters.
 14. Dataset storage and saved project restoration.
 15. Sample datasets and demo flow.

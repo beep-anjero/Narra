@@ -1,6 +1,6 @@
 # Narra analytics service
 
-Stage 10 adds ranked visualization recommendations to the authenticated CSV workflow. It validates UTF-8 CSV
+Stage 11 adds full-data chart preparation to the authenticated CSV workflow. It validates UTF-8 CSV
 uploads, headers, duplicate columns, malformed records, actual byte and row limits,
 and returns no more than 100 preview rows plus metadata calculated from all rows.
 Files are not persisted yet.
@@ -67,7 +67,7 @@ default to 20 MiB and 100,000 data rows and are configured server-side.
 ## Schema analysis endpoint
 
 `POST /api/v1/datasets/analyze` accepts the same authenticated raw CSV request as
-preview. Its response is `{preview, column_metadata, statistics, recommendations}`; each metadata item contains
+preview. Its response is `{preview, column_metadata, statistics, recommendations, charts}`; each metadata item contains
 `name`, `detected_type`, `missing_count`, `missing_percentage`, `unique_count`, and
 `sample_values`. The existing preview endpoint retains its original response.
 
@@ -174,6 +174,28 @@ belong to Stage 11; no chart data is fabricated in Stage 10.
 
 ### Service boundaries
 
+Stage 11's `chart_data.py` prepares the recommended charts from the full DataFrame
+inside the analysis request. Each chart includes its recommendation index, a bounded
+list of `{x, y}` points, a scope note, and a nullable error. Standalone recommendation
+and statistics endpoints retain their earlier contracts.
+
+- Bars/donuts aggregate valid paired rows with the recommended sum, mean, or count.
+  Original categorical labels are preserved; all eligible categories are included.
+- Lines aggregate observed UTC days, then months, then years until at most 120
+  periods remain; exceptionally broad dates use centuries. Empty periods are omitted,
+  not treated as zeros. Labels remain chronological.
+- Histograms use 2–20 equal-width bins (square-root rule, capped at 20). The final
+  bin includes its upper bound. Counts cover all valid values; numeric scaling
+  avoids intermediate overflow. Labels use six significant digits.
+- Scatter plots include all valid pairs up to 500, otherwise 500 evenly spaced
+  source positions including endpoints. This deterministic sample is disclosed and
+  is not a statistical sample or an outlier-preserving algorithm.
+- Unrepresentable grouped values or indistinguishable histogram values produce a
+  per-chart error instead of failing the whole analysis. Float64 precision applies.
+
+The browser receives at most six charts and 500 points per chart, never the full
+CSV. The visible chart data tables show at most 50 plotted values each.
+
 - `app/main.py`: application factory and composition.
 - `app/settings.py`: validated Pydantic settings.
 - `app/api/`: thin versioned router, health handler, and error handlers.
@@ -183,6 +205,7 @@ belong to Stage 11; no chart data is fabricated in Stage 10.
 - `app/services/column_values.py`: shared missing, numeric, and datetime conversion.
 - `app/services/statistics.py`: independent full-data descriptive statistics.
 - `app/services/visualization_recommender.py`: bounded deterministic chart ranking.
+- `app/services/chart_data.py`: full-data aggregation and bounded plotting data.
 - `app/models/`, `app/utils/`: reserved until needed.
 - `tests/`: pytest HTTP, settings, CORS, and failure-contract tests.
 
