@@ -10,6 +10,7 @@ import { SchemaSummary } from "./schema-summary";
 import { StatisticsPanel } from "./statistics-panel";
 import { GeneratedDashboard } from "@/features/dashboard/generated-dashboard";
 import { InsightPanel } from "@/features/insights/insight-card";
+import { FilterPanel } from "@/features/filters/filter-panel";
 
 export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxBytes: number }) {
   const inputId = useId();
@@ -163,6 +164,7 @@ export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxByt
       </p>
       {analysis && (
         <>
+          <FilterPanel projectId={projectId} analysis={analysis} onChange={setAnalysis} />
           <GeneratedDashboard analysis={analysis} />
           <InsightPanel insights={analysis.insights} />
           <StatisticsPanel statistics={analysis.statistics} />

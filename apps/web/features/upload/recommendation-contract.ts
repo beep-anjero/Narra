@@ -8,6 +8,6 @@ export const recommendationSchema = z.object({
   aggregation: z.enum(["sum", "mean", "count", "none"]),
   reason: z.string().min(1),
   score: z.number().min(0).max(1),
-  valid_rows: z.number().int().min(2),
+  valid_rows: z.number().int().nonnegative(),
 });
 export type VisualizationRecommendation = z.infer<typeof recommendationSchema>;

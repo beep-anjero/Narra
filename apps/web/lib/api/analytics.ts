@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { analysisSchema, uploadErrorSchema, UploadError } from "@/features/upload/contracts";
+import type { FilterRequest } from "@/features/filters/contracts";
 
 export function uploadLimit() {
   return z.coerce
@@ -11,7 +12,41 @@ export function uploadLimit() {
     .parse(process.env.MAX_UPLOAD_SIZE_BYTES ?? 20971520);
 }
 
-export async function analyzeDataset(content: ArrayBuffer, filename: string, mime: string) {
+export async function analyzeDataset(
+  content: ArrayBuffer,
+  filename: string,
+  mime: string,
+  scope?: { userId: string; projectId: string },
+) {
+  return analyticsRequest(
+    "analyze",
+    content,
+    {
+      "Content-Type": mime || "application/octet-stream",
+      "X-Filename": encodeURIComponent(filename),
+    },
+    scope,
+  );
+}
+
+export async function filterDataset(
+  filters: FilterRequest,
+  scope: { userId: string; projectId: string },
+) {
+  return analyticsRequest(
+    "filter",
+    JSON.stringify(filters),
+    { "Content-Type": "application/json" },
+    scope,
+  );
+}
+
+async function analyticsRequest(
+  endpoint: string,
+  content: ArrayBuffer | string,
+  headers: Record<string, string>,
+  scope?: { userId: string; projectId: string },
+) {
   const config = z
     .object({ url: z.url().refine((value) => /^https?:\/\//.test(value)), key: z.string().min(32) })
     .safeParse({
@@ -26,15 +61,15 @@ export async function analyzeDataset(content: ArrayBuffer, filename: string, mim
     );
   let response: Response;
   try {
-    response = await fetch(`${config.data.url.replace(/\/$/, "")}/api/v1/datasets/analyze`, {
+    response = await fetch(`${config.data.url.replace(/\/$/, "")}/api/v1/datasets/${endpoint}`, {
       method: "POST",
       body: content,
       cache: "no-store",
       signal: AbortSignal.timeout(60000),
       headers: {
         Authorization: `Bearer ${config.data.key}`,
-        "Content-Type": mime || "application/octet-stream",
-        "X-Filename": encodeURIComponent(filename),
+        ...headers,
+        ...(scope ? { "X-Narra-User": scope.userId, "X-Narra-Project": scope.projectId } : {}),
       },
     });
   } catch {
@@ -56,7 +91,7 @@ export async function analyzeDataset(content: ArrayBuffer, filename: string, mim
   }
   if (!response.ok) {
     const error = uploadErrorSchema.safeParse(payload);
-    if ([413, 415, 422].includes(response.status) && error.success)
+    if ([410, 413, 415, 422].includes(response.status) && error.success)
       throw new UploadError(error.data.error.code, error.data.error.message, response.status);
     throw new UploadError(
       "backend_unavailable",

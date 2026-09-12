@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { beforeEach, expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
 const m = vi.hoisted(() => ({
   user: vi.fn(),
   client: vi.fn(),

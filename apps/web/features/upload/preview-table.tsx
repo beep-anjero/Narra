@@ -158,7 +158,9 @@ export function PreviewTable({
                   colSpan={preview.column_count + 1}
                   className="px-4 py-10 text-center text-muted-foreground"
                 >
-                  No preview rows match your search.
+                  {query.trim()
+                    ? "No preview rows match your search."
+                    : "No rows are available in this view."}
                 </td>
               </tr>
             )}

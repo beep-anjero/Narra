@@ -3,21 +3,23 @@ import { statisticsSchema } from "./statistics-contract";
 import { recommendationSchema } from "./recommendation-contract";
 import { chartDataSchema } from "@/features/charts/contracts";
 import { insightSchema } from "@/features/insights/contracts";
+import { filterContextSchema } from "@/features/filters/contracts";
 
 export const previewSchema = z
   .object({
     filename: z.string(),
     file_size: z.number().int().positive(),
-    row_count: z.number().int().positive(),
+    row_count: z.number().int().nonnegative(),
     column_count: z.number().int().min(1).max(200),
     columns: z.array(z.string()).min(1).max(200),
-    rows: z.array(z.array(z.string()).max(200)).min(1).max(100),
+    rows: z.array(z.array(z.string()).max(200)).max(100),
     preview_limit: z.literal(100),
     truncated: z.boolean(),
   })
   .refine(
     (value) =>
       value.columns.length === value.column_count &&
+      value.rows.length === Math.min(value.row_count, value.preview_limit) &&
       value.rows.every((row) => row.length === value.column_count),
     "Invalid preview dimensions",
   );
@@ -40,6 +42,7 @@ export const analysisSchema = z
     recommendations: z.array(recommendationSchema).max(6).optional(),
     charts: z.array(chartDataSchema).max(6).optional(),
     insights: z.array(insightSchema).max(12).optional(),
+    filter_context: filterContextSchema.nullable().optional(),
   })
   .refine(
     (value) =>
@@ -101,7 +104,6 @@ export const analysisSchema = z
           case "donut":
             return (
               category &&
-              x.unique_count >= 2 &&
               x.unique_count <= 8 &&
               item.y_column === null &&
               item.aggregation === "count"
@@ -142,6 +144,12 @@ export const analysisSchema = z
             ),
         )),
     "Invalid chart data",
+  )
+  .refine(
+    ({ preview, filter_context }) =>
+      !filter_context ||
+      filter_context.fields.every((field) => preview.columns.includes(field.column)),
+    "Invalid filter columns",
   );
 export type DatasetAnalysis = z.infer<typeof analysisSchema>;
 export const uploadErrorSchema = z.object({

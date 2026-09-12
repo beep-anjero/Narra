@@ -9,6 +9,8 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL(".", import.meta.url)) },
   },
   test: {
+    // Bound jsdom workers to avoid memory contention on development machines.
+    maxWorkers: 2,
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],
     include: ["tests/**/*.test.{ts,tsx}"],
