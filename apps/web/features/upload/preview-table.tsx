@@ -187,8 +187,8 @@ export function PreviewTable({
         </nav>
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        This preview is temporary and clears when you leave or reload the page. Original values are
-        preserved; blank and whitespace-only cells are marked Missing.
+        Original values are preserved; blank and whitespace-only cells are marked Missing. Search
+        and sorting apply only to these preview rows.
       </p>
     </section>
   );

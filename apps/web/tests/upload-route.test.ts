@@ -1,6 +1,10 @@
 // @vitest-environment node
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/api/saved-datasets", () => ({
+  getSavedDataset: async () => null,
+  persistDataset: async () => {},
+}));
 const m = vi.hoisted(() => ({
   user: vi.fn(),
   client: vi.fn(),

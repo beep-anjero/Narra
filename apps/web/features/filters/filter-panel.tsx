@@ -211,8 +211,8 @@ export function FilterPanel({
         </p>
       )}
       <p className="mt-3 text-xs text-muted-foreground">
-        Filtering is temporary. If this analysis expires or the service restarts, upload the CSV
-        again.
+        Filters are a temporary view. Saved datasets restore automatically if the processing cache
+        expires; the first request may take longer.
       </p>
     </section>
   );

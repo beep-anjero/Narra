@@ -12,10 +12,21 @@ import { GeneratedDashboard } from "@/features/dashboard/generated-dashboard";
 import { InsightPanel } from "@/features/insights/insight-card";
 import { FilterPanel } from "@/features/filters/filter-panel";
 
-export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxBytes: number }) {
+export function CsvUploader({
+  projectId,
+  maxBytes,
+  initialAnalysis = null,
+  view = "dashboard",
+}: {
+  projectId: string;
+  maxBytes: number;
+  initialAnalysis?: DatasetAnalysis | null;
+  view?: "dashboard" | "data" | "insights";
+}) {
   const inputId = useId();
   const [file, setFile] = useState<File | null>(null);
-  const [analysis, setAnalysis] = useState<DatasetAnalysis | null>(null);
+  const [analysis, setAnalysis] = useState<DatasetAnalysis | null>(initialAnalysis);
+  const [saved, setSaved] = useState(Boolean(initialAnalysis));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -57,7 +68,8 @@ export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxByt
       const result = await uploadDataset(projectId, file, setProgress, controller.signal);
       if (!controller.signal.aborted) {
         setAnalysis(result);
-        setNotice("CSV validated and schema detected successfully.");
+        setSaved(true);
+        setNotice("Dataset analyzed and saved. Your dashboard is ready.");
       }
     } catch (cause) {
       if (controller.signal.aborted) setNotice("Upload canceled.");
@@ -76,77 +88,81 @@ export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxByt
       aria-labelledby={`${inputId}-title`}
     >
       <h2 id={`${inputId}-title`} className="text-2xl font-semibold">
-        Upload your dataset
+        {saved ? "Your dataset" : "Upload your dataset"}
       </h2>
-      <p id={`${inputId}-help`} className="mt-3 text-sm text-muted-foreground">
-        Choose a UTF-8 CSV with a header row. Up to {(maxBytes / 1048576).toLocaleString()} MiB.
-        Narra validates the file, detects column types, and calculates statistics before showing a
-        preview.
-      </p>
-      <div
-        className={`mt-6 rounded-xl border-2 border-dashed p-7 text-center ${dragging ? "border-primary bg-primary/5" : "border-border"}`}
-        onDragOver={(event) => {
-          event.preventDefault();
-          if (!busy) setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(event) => {
-          event.preventDefault();
-          setDragging(false);
-          selectFiles(event.dataTransfer.files);
-        }}
-      >
-        <Upload className="mx-auto mb-4 size-8 text-primary" aria-hidden="true" />
-        <p className="font-medium">Drag and drop your CSV here</p>
-        <label htmlFor={inputId} className="mt-4 block text-sm font-medium">
-          Or choose a CSV file
-        </label>
-        <input
-          id={inputId}
-          type="file"
-          accept=".csv,text/csv"
-          disabled={busy}
-          aria-describedby={`${inputId}-help`}
-          className="mt-3 max-w-full text-sm file:mr-3 file:rounded-md file:border file:bg-background file:px-4 file:py-2 focus-visible:outline-2 focus-visible:outline-ring"
-          onChange={(event) => {
-            selectFiles(event.target.files);
-            event.target.value = "";
-          }}
-        />
-      </div>
-      {file && (
-        <div className="mt-5 flex items-center gap-3 text-sm">
-          <FileSpreadsheet className="size-5 shrink-0 text-primary" aria-hidden="true" />
-          <p className="min-w-0 break-words">
-            {file.name}{" "}
-            <span className="text-muted-foreground">({file.size.toLocaleString()} bytes)</span>
+      {!saved && (
+        <>
+          <p id={`${inputId}-help`} className="mt-3 text-sm text-muted-foreground">
+            Choose a UTF-8 CSV with a header row. Up to {(maxBytes / 1048576).toLocaleString()} MiB.
+            Narra validates the file, detects column types, and calculates statistics before showing
+            a preview.
           </p>
-        </div>
-      )}
-      <div className="mt-5 flex flex-wrap gap-3">
-        <Button disabled={!file || busy} onClick={submit}>
-          {busy ? "Processing…" : "Validate CSV"}
-        </Button>
-        {busy && (
-          <Button variant="outline" onClick={() => active.current?.abort()}>
-            Cancel upload
-          </Button>
-        )}
-      </div>
-      {busy && (
-        <div className="mt-5">
-          <p role="status" className="mb-2 text-sm">
-            {progress < 100
-              ? `Uploading dataset · ${progress}%`
-              : "Analyzing dataset and preparing your dashboard…"}
-          </p>
-          <progress
-            className="h-2 w-full accent-primary"
-            value={progress}
-            max={100}
-            aria-label="Upload progress"
-          />
-        </div>
+          <div
+            className={`mt-6 rounded-xl border-2 border-dashed p-7 text-center ${dragging ? "border-primary bg-primary/5" : "border-border"}`}
+            onDragOver={(event) => {
+              event.preventDefault();
+              if (!busy) setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(event) => {
+              event.preventDefault();
+              setDragging(false);
+              selectFiles(event.dataTransfer.files);
+            }}
+          >
+            <Upload className="mx-auto mb-4 size-8 text-primary" aria-hidden="true" />
+            <p className="font-medium">Drag and drop your CSV here</p>
+            <label htmlFor={inputId} className="mt-4 block text-sm font-medium">
+              Or choose a CSV file
+            </label>
+            <input
+              id={inputId}
+              type="file"
+              accept=".csv,text/csv"
+              disabled={busy}
+              aria-describedby={`${inputId}-help`}
+              className="mt-3 max-w-full text-sm file:mr-3 file:rounded-md file:border file:bg-background file:px-4 file:py-2 focus-visible:outline-2 focus-visible:outline-ring"
+              onChange={(event) => {
+                selectFiles(event.target.files);
+                event.target.value = "";
+              }}
+            />
+          </div>
+          {file && (
+            <div className="mt-5 flex items-center gap-3 text-sm">
+              <FileSpreadsheet className="size-5 shrink-0 text-primary" aria-hidden="true" />
+              <p className="min-w-0 break-words">
+                {file.name}{" "}
+                <span className="text-muted-foreground">({file.size.toLocaleString()} bytes)</span>
+              </p>
+            </div>
+          )}
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Button disabled={!file || busy} onClick={submit}>
+              {busy ? "Processing…" : "Validate CSV"}
+            </Button>
+            {busy && (
+              <Button variant="outline" onClick={() => active.current?.abort()}>
+                Cancel upload
+              </Button>
+            )}
+          </div>
+          {busy && (
+            <div className="mt-5">
+              <p role="status" className="mb-2 text-sm">
+                {progress < 100
+                  ? `Uploading dataset · ${progress}%`
+                  : "Analyzing dataset and preparing your dashboard…"}
+              </p>
+              <progress
+                className="h-2 w-full accent-primary"
+                value={progress}
+                max={100}
+                aria-label="Upload progress"
+              />
+            </div>
+          )}
+        </>
       )}
       {error && (
         <p role="alert" className="mt-5 text-sm text-destructive">
@@ -159,17 +175,22 @@ export function CsvUploader({ projectId, maxBytes }: { projectId: string; maxByt
         </p>
       )}
       <p className="mt-5 text-xs text-muted-foreground">
-        Your project details are saved. Uploaded data, statistics, and charts are temporary until
-        you leave or reload this page.
+        {saved
+          ? `${analysis?.preview.filename ?? "Dataset"} · Saved privately to your project. Filters change this view; the original analysis stays saved.`
+          : "Your CSV and generated dashboard will be saved automatically. One dataset per project."}
       </p>
       {analysis && (
         <>
           <FilterPanel projectId={projectId} analysis={analysis} onChange={setAnalysis} />
-          <GeneratedDashboard analysis={analysis} />
-          <InsightPanel insights={analysis.insights} />
-          <StatisticsPanel statistics={analysis.statistics} />
-          <PreviewTable preview={analysis.preview} columns={analysis.column_metadata} />
-          <SchemaSummary columns={analysis.column_metadata} />
+          {view === "dashboard" && <GeneratedDashboard analysis={analysis} />}
+          {view !== "data" && <InsightPanel insights={analysis.insights} />}
+          {view === "data" && (
+            <>
+              <StatisticsPanel statistics={analysis.statistics} />
+              <PreviewTable preview={analysis.preview} columns={analysis.column_metadata} />
+              <SchemaSummary columns={analysis.column_metadata} />
+            </>
+          )}
         </>
       )}
     </section>

@@ -39,7 +39,7 @@ beforeEach(() => {
 });
 it("rejects unsupported files before upload", async () => {
   const user = userEvent.setup({ applyAccept: false });
-  render(<CsvUploader projectId="p" maxBytes={100} />);
+  render(<CsvUploader projectId="p" maxBytes={100} view="data" />);
   await user.upload(screen.getByLabelText("Or choose a CSV file"), new File(["bad"], "data.xlsx"));
   expect(screen.getByRole("alert")).toHaveTextContent("Only .csv");
   expect(upload).not.toHaveBeenCalled();
@@ -47,7 +47,7 @@ it("rejects unsupported files before upload", async () => {
 it("uploads and displays the real returned preview and detected schema", async () => {
   const user = userEvent.setup();
   upload.mockResolvedValue(analysis);
-  render(<CsvUploader projectId="p" maxBytes={100} />);
+  render(<CsvUploader projectId="p" maxBytes={100} view="data" />);
   await user.upload(
     screen.getByLabelText("Or choose a CSV file"),
     new File(["ID,Name\n0012,Alice"], "data.csv", { type: "text/csv" }),
@@ -59,7 +59,7 @@ it("uploads and displays the real returned preview and detected schema", async (
   expect(screen.getByRole("region", { name: "Detected column schema" })).toHaveTextContent(
     "Numeric",
   );
-  expect(screen.getByText(/This preview is temporary/)).toBeInTheDocument();
+  expect(screen.getByText(/Saved privately to your project/)).toBeInTheDocument();
 });
 it("shows validation failures and permits a retry", async () => {
   const user = userEvent.setup();

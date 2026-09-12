@@ -147,3 +147,21 @@ fixtures. Neither proves live email delivery or hosted Supabase configuration.
 Official references: [Supabase SSR setup](https://supabase.com/docs/guides/auth/server-side/nextjs),
 [confirmation email templates](https://supabase.com/docs/guides/auth/auth-email-templates),
 and [user data and profile triggers](https://supabase.com/docs/guides/auth/managing-user-data).
+
+## Stage 14: saved datasets
+
+Apply `supabase/migrations/20260913000100_datasets.sql` after the first two
+migrations. It creates the private `datasets` bucket, four owner-only tables,
+transactional `save_analysis` function, and project deletion cleanup guard. The
+bucket defaults to 20 MiB; if changing `MAX_UPLOAD_SIZE_BYTES`, update its Storage
+limit too. No service-role key is needed by the application.
+
+Uploads now persist automatically. Reopen a project to load its bounded saved
+analysis. Filtering restores processing state from its private CSV as needed.
+Create a new project for another dataset; V1 does not replace datasets. Project
+settings remove Storage files through the API before cascading database records.
+See [the persistence design](stage-14-design.md) for failure/cleanup semantics.
+
+The migration is transactional and should be run once. Local RLS tests exercise
+its SQL against PostgreSQL with a minimal Storage schema. Hosted Storage behavior
+still needs the migration applied and the live lifecycle verification performed.

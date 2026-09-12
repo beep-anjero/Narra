@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { beforeEach, expect, it, vi } from "vitest";
+vi.mock("@/lib/api/saved-datasets", () => ({ removeProjectFiles: async () => {} }));
 const mocks = vi.hoisted(() => ({
   context: vi.fn(),
   from: vi.fn(),

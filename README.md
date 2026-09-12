@@ -300,3 +300,11 @@ each stage. Stage 14 begins only after explicit instruction.
 The complete V1 workflow will cover registration, CSV analysis, generated charts,
 filtering, saving, and reopening projects. Screenshots, live demo details, database
 setup, and deployment procedures will be documented when those stages are built.
+
+## Stage 14 persistence
+
+Datasets, inferred columns, chart configuration, and insights are saved under
+Supabase RLS. Saved snapshots reopen without the analytics service; applying a
+filter can restore the full CSV into its bounded processing cache. Apply the new
+migration in [Supabase setup](docs/supabase-setup.md). See the
+[persistence design](docs/stage-14-design.md). Hosted verification is pending.

@@ -6,7 +6,7 @@ export const filterFieldSchema = z.object({
   values: z.array(z.string()).max(50),
 });
 export const filterContextSchema = z.object({
-  token: z.string().min(40).max(64),
+  token: z.string().min(40).max(64).nullable(),
   expires_in_seconds: z.number().int().positive(),
   fields: z.array(filterFieldSchema).max(200),
 });
@@ -30,7 +30,7 @@ const ruleSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 export const filterRequestSchema = z
-  .object({ token: z.string().min(40).max(64), filters: z.array(ruleSchema).max(20) })
+  .object({ token: z.string().min(40).max(64).nullable(), filters: z.array(ruleSchema).max(20) })
   .refine(
     ({ filters }) =>
       filters.every(

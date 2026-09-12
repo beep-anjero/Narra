@@ -15,7 +15,7 @@ export async function listProjects(page: number) {
   const { user, client } = await projectContext();
   const { data, error, count } = await client
     .from("projects")
-    .select("*", { count: "exact" })
+    .select("*, datasets(original_filename,row_count,column_count)", { count: "exact" })
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false })
     .order("id")

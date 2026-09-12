@@ -63,7 +63,11 @@ export default async function DashboardPage({
                 <p className="mt-2 line-clamp-2 break-words text-sm text-muted-foreground">
                   {project.description || "No description added."}
                 </p>
-                <p className="mt-5 text-sm text-muted-foreground">No dataset attached</p>
+                <p className="mt-5 break-words text-sm text-muted-foreground">
+                  {project.datasets
+                    ? `${project.datasets.original_filename} · ${project.datasets.row_count.toLocaleString()} rows · ${project.datasets.column_count} columns`
+                    : "No dataset attached"}
+                </p>
                 <div className="mt-4 space-y-1 text-xs text-muted-foreground">
                   <p>
                     Created:{" "}

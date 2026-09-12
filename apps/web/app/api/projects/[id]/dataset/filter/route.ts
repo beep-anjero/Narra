@@ -3,6 +3,7 @@ import { filterDataset } from "@/lib/api/analytics";
 import { filterRequestSchema } from "@/features/filters/contracts";
 import { UploadError } from "@/features/upload/contracts";
 import { readUploadBody } from "@/features/upload/read-body";
+import { restoreDataset } from "@/lib/api/saved-datasets";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
@@ -32,7 +33,29 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const filters = filterRequestSchema.safeParse(payload);
     if (!filters.success)
       throw new UploadError("invalid_filter", "Enter valid filter values and ordered ranges.");
-    return Response.json(await filterDataset(filters.data, scope), {
+    let result;
+    try {
+      if (!filters.data.token)
+        throw new UploadError("analysis_expired", "Restore saved analysis.", 410);
+      result = await filterDataset(filters.data, scope);
+    } catch (error) {
+      if (!(error instanceof UploadError) || error.status !== 410) throw error;
+      const restored = await restoreDataset(scope);
+      if (!filters.data.filters.length) result = restored;
+      else {
+        if (!restored.filter_context?.token)
+          throw new UploadError(
+            "filter_capacity",
+            "This dataset exceeds temporary filter capacity. Its saved dashboard is still available.",
+            422,
+          );
+        result = await filterDataset(
+          { ...filters.data, token: restored.filter_context.token },
+          scope,
+        );
+      }
+    }
+    return Response.json(result, {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {

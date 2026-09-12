@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { projectContext } from "@/lib/api/projects";
+import { removeProjectFiles } from "@/lib/api/saved-datasets";
 import { projectIdSchema, projectSchema, type ProjectFormState } from "./schemas";
 
 export async function saveProject(
@@ -56,6 +57,7 @@ export async function deleteProject(
   if (form.get("confirmation") !== "DELETE")
     return { message: "Type DELETE to confirm project deletion." };
   try {
+    await removeProjectFiles({ userId: user.id, projectId: id.data });
     const { data, error } = await client
       .from("projects")
       .delete()

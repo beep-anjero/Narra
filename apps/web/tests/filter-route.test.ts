@@ -9,6 +9,7 @@ const m = vi.hoisted(() => ({
   eq: vi.fn(),
   maybeSingle: vi.fn(),
   filter: vi.fn(),
+  restore: vi.fn(),
 }));
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: m.client }));
 vi.mock("@/lib/api/analytics", () => ({ filterDataset: m.filter }));
@@ -51,5 +52,13 @@ it("uses verified scope rather than client headers", async () => {
 it("rejects oversized or malformed filters", async () => {
   expect((await POST(request("x".repeat(65537)), context)).status).toBe(413);
   expect((await POST(request("bad"), context)).status).toBe(422);
+  expect(m.filter).not.toHaveBeenCalled();
+});
+vi.mock("@/lib/api/saved-datasets", () => ({ restoreDataset: m.restore }));
+it("rehydrates a saved dataset without making the browser upload again", async () => {
+  m.restore.mockResolvedValue({ preview: { row_count: 10 } });
+  const result = await POST(request(JSON.stringify({ token: null, filters: [] })), context);
+  expect(result.status).toBe(200);
+  expect(m.restore).toHaveBeenCalledWith({ userId: "owner", projectId: id });
   expect(m.filter).not.toHaveBeenCalled();
 });

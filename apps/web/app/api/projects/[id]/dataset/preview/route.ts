@@ -2,6 +2,7 @@ import { UploadError, validateUpload } from "@/features/upload/contracts";
 import { readUploadBody } from "@/features/upload/read-body";
 import { analyzeDataset, uploadLimit } from "@/lib/api/analytics";
 import { authorizeProject } from "@/lib/api/project-access";
+import { getSavedDataset, persistDataset } from "@/lib/api/saved-datasets";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
@@ -15,6 +16,12 @@ function failure(status: number, code: string, message: string) {
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const scope = await authorizeProject(request, (await params).id);
+    if (await getSavedDataset(scope.projectId))
+      return failure(
+        409,
+        "dataset_exists",
+        "This project already has a saved dataset. Create a new project for another CSV.",
+      );
     let name: string;
     try {
       name = decodeURIComponent(request.headers.get("x-filename") ?? "");
@@ -27,6 +34,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (invalid) return failure(415, "invalid_file", invalid);
     const content = await readUploadBody(request, limit);
     const result = await analyzeDataset(content, name, mime, scope);
+    await persistDataset(scope, content, name, result);
     return Response.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (error instanceof UploadError) return failure(error.status, error.code, error.message);
