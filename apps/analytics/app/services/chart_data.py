@@ -54,9 +54,9 @@ def _prepare(
         values = paired["x"].astype(float)
         scale = float(values.abs().max()) or 1.0
         if (values / scale).nunique() < 2:
-            raise OverflowError(
-                "Values are too close to distinguish at supported numeric precision."
-            )
+            return [
+                ChartPoint(x=f"{values.iloc[0]:.6g}", y=float(len(values)))
+            ], "All selected values fall into one representable bin."
         counts, edges = np.histogram(
             values / scale, bins=min(20, max(2, int(math.sqrt(len(values)))))
         )

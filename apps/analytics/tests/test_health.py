@@ -18,6 +18,7 @@ def test_openapi_documents_only_implemented_api(client: TestClient):
         "/api/v1/datasets/statistics",
         "/api/v1/datasets/recommend-visualizations",
         "/api/v1/datasets/generate-insights",
+        "/api/v1/datasets/filter",
     }
     assert "HealthResponse" in response.json()["components"]["schemas"]
     assert client.get("/docs").status_code == 200

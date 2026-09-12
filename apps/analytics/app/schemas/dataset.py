@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.chart import ChartData
+from app.schemas.filters import FilterContext
 from app.schemas.insight import Insight
 from app.schemas.statistics import DatasetStatistics
 from app.schemas.visualization import VisualizationRecommendation
@@ -13,7 +14,7 @@ class DatasetPreview(BaseModel):
 
     filename: str
     file_size: int = Field(ge=1)
-    row_count: int = Field(ge=1)
+    row_count: int = Field(ge=0)
     column_count: int = Field(ge=1)
     columns: list[str]
     rows: list[list[str]]
@@ -41,3 +42,4 @@ class DatasetAnalysis(BaseModel):
     recommendations: list[VisualizationRecommendation] = Field(max_length=6)
     charts: list[ChartData] = Field(max_length=6)
     insights: list[Insight] = Field(max_length=12)
+    filter_context: FilterContext | None = None

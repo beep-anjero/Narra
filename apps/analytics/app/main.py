@@ -5,6 +5,7 @@ from app import __version__
 from app.api.errors import register_error_handlers
 from app.api.router import router
 from app.schemas.error import ErrorResponse
+from app.services.analysis_cache import AnalysisCache
 from app.settings import Settings
 
 
@@ -17,6 +18,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         responses={500: {"model": ErrorResponse, "description": "Internal service error"}},
     )
     app.state.settings = configuration
+    app.state.analysis_cache = AnalysisCache()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=configuration.cors_origins,

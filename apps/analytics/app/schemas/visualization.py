@@ -13,7 +13,7 @@ class VisualizationRecommendation(BaseModel):
     aggregation: Literal["sum", "mean", "count", "none"]
     reason: str
     score: float = Field(ge=0, le=1)
-    valid_rows: int = Field(ge=2)
+    valid_rows: int = Field(ge=0)
 
 
 class VisualizationRecommendations(BaseModel):
