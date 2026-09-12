@@ -6,7 +6,7 @@ Narra is a planned full-stack application that examines uploaded CSV datasets an
 recommends useful statistics, visualizations, and deterministic insights. The MVP
 will use rules and calculations, with no AI/LLM functionality.
 
-**Current status: Stage 12 deterministic insights.** The monorepo, landing
+**Current status: Stages 12–13 insights and synchronized filters.** The monorepo, landing
 page, email/password auth, and owner-protected project creation, listing, editing,
 and deletion are implemented. Apply both migrations using [Supabase setup](docs/supabase-setup.md).
 Projects accept a validated CSV, infer column types from every data row, and return
@@ -14,7 +14,9 @@ up to 100 preview rows with pagination, search, and natural text sorting. Missin
 and sample values appear in the schema summary. Analysis now includes full-dataset
 statistics and missing-value summaries displayed in a column statistics panel.
 Recommended charts now render automatically with KPI cards and bounded full-data
-aggregations. Persisted datasets remain a future stage. See
+aggregations. Deterministic insights expose calculation evidence. Category, numeric,
+and date filters update all analysis outputs together using a temporary, owner-scoped
+15-minute analytics cache. Persisted datasets remain Stage 14. See
 [analytics setup](apps/analytics/README.md) to run the required service locally.
 
 The landing page includes an explicitly labeled illustrative dashboard. **Try Demo
@@ -202,8 +204,8 @@ Auth, and Storage with Row Level Security.
 
 See [architecture decisions](docs/architecture.md) for the planned service diagram,
 feature boundaries, and stage decisions. Zod and Supabase client dependencies are
-now installed. ECharts renders generated dashboards; shared dashboard state remains
-deferred until global filters need it. FastAPI, Pydantic, pandas, and NumPy prepare
+now installed. ECharts renders generated dashboards; Zustand manages dataset-scoped
+filter drafts and applied state. FastAPI, Pydantic, pandas, and NumPy prepare
 full-data statistics and bounded chart payloads.
 
 ## Authentication and database setup
@@ -275,7 +277,7 @@ Generated dashboard checks are in the [Stage 11 verification record](docs/stage-
 ## Roadmap
 
 Work proceeds one stage at a time, with verification and a meaningful commit for
-each stage. Stage 12 begins only after explicit instruction.
+each stage. Stage 14 begins only after explicit instruction.
 
 1. **Complete:** monorepo and frontend foundation.
 2. **Complete:** branding, navbar, landing page, UI primitives, and responsive behavior.
@@ -289,7 +291,7 @@ each stage. Stage 12 begins only after explicit instruction.
 10. **Implemented:** Deterministic visualization recommendations.
 11. **Implemented:** ECharts dashboard and KPIs.
 12. **Implemented:** Deterministic insights, correlations, and outliers.
-13. Synchronized dashboard filters.
+13. **Implemented:** Synchronized dashboard filters.
 14. Dataset storage and saved project restoration.
 15. Sample datasets and demo flow.
 16. Full automated tests, accessibility, and error-state verification.

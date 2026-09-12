@@ -190,8 +190,8 @@ and statistics endpoints retain their earlier contracts.
 - Scatter plots include all valid pairs up to 500, otherwise 500 evenly spaced
   source positions including endpoints. This deterministic sample is disclosed and
   is not a statistical sample or an outlier-preserving algorithm.
-- Unrepresentable grouped values or indistinguishable histogram values produce a
-  per-chart error instead of failing the whole analysis. Float64 precision applies.
+- Unrepresentable grouped values produce a per-chart error instead of failing
+  the whole analysis. Constant filtered histograms use one bin. Float64 precision applies.
 
 The browser receives at most six charts and 500 points per chart, never the full
 CSV. The visible chart data tables show at most 50 plotted values each.
@@ -245,3 +245,31 @@ uv run --directory apps/analytics --locked --no-dev uvicorn app.main:app --host 
 Configure the exact web origin in `CORS_ORIGINS`, terminate HTTPS at the hosting
 proxy, and use `/api/v1/health` as the liveness probe. FastAPI runs separately from
 Next.js. No deployment has been performed in Stage 5.
+
+## Deterministic insights and filtering
+
+Analysis includes calculation-backed missing-data, IQR outlier, Pearson
+correlation, category-frequency, and consecutive-month mean-change insights.
+`POST /api/v1/datasets/generate-insights` exposes the same independent service.
+No insight asserts causation or removes outliers.
+
+When the trusted web server supplies UUID `X-Narra-User` and `X-Narra-Project`
+headers, analysis can return `filter_context` containing a token and available
+fields. `POST /api/v1/datasets/filter` accepts JSON with that token and up to 20
+filters. Each filter has a column and kind: categorical (values), numeric
+(minimum/maximum), or datetime (start/end in YYYY-MM-DD). Bounds are inclusive;
+dates use UTC calendar days. An empty filters list resets the view. Authentication
+and the identical owner/project scope are required on every call.
+
+Filter bodies are capped at 64 KiB. Invalid filters return 422; expired, unknown,
+or differently scoped tokens return 410. The original chart choices are retained
+and all analysis outputs are recalculated. Empty results have zero rows and empty
+chart payloads; a constant filtered histogram has one bin.
+
+The single-process memory cache has a 15-minute absolute lifetime, an eight-entry
+LRU limit, and a combined 128 MiB retained DataFrame budget. Oversized frames
+remain analyzable but have no filter context. Expired entries are removed on cache
+access/insertion. Use one analytics worker or sticky routing; restarting loses
+entries. These are temporary processing buffers, not durable storage. See
+[design](../../docs/stage-13-design.md) and
+[verification](../../docs/stage-13-verification.md).

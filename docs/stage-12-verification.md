@@ -19,3 +19,6 @@ Insight cards expose evidence using native keyboard-accessible disclosures.
 Verification covers IQR fences, valid correlation pairs, constant columns, monthly
 changes, zero baselines, deterministic frequency ties, and evidence rendering.
 Hosted sign-in and visual browser QA remain unverified. Datasets remain temporary.
+
+Before the Stage 12 commit, 123 backend tests and 145 web tests passed. Ruff,
+Prettier, ESLint, strict TypeScript, and the Next.js production build passed.

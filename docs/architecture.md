@@ -172,7 +172,7 @@ remains later-stage work.
 ## Next stage
 
 Apply the projects migration and verify the hosted project lifecycle described in
-`docs/supabase-setup.md`. Stage 12 adds deterministic insights only
+`docs/supabase-setup.md`. Stage 14 adds durable dataset persistence only
 after explicit instruction.
 
 ## Stage 11 decisions
@@ -301,3 +301,18 @@ and [container resize/disposal](https://echarts.apache.org/handbook/en/concepts/
   Ruff handles Python lint and formatting; `pnpm check:all` verifies both runtimes.
 - Implementation follows the official [FastAPI router guidance](https://fastapi.tiangolo.com/tutorial/bigger-applications/)
   and [CORS documentation](https://fastapi.tiangolo.com/tutorial/cors/).
+
+## Stages 12–13 decisions
+
+- Independent services calculate deterministic insights with visible evidence;
+  correlations describe associations, and IQR outliers are reported without removal.
+- Filters operate on the complete parsed dataset, never on browser preview rows.
+  The [temporary cache design](stage-13-design.md) documents the bounded, scoped
+  processing state introduced before durable persistence.
+- The Next.js API layer verifies origin, Supabase identity, and project ownership
+  before forwarding a trusted user/project scope to FastAPI. Tokens alone do not
+  authorize cache access. Browser components use the centralized API client.
+- A dataset-scoped Zustand store separates draft and applied filters. One atomic
+  response refreshes every dashboard output; failed requests retain prior results.
+- Original chart choices remain stable after filtering. Zero matches are valid
+  analysis results, while empty uploaded CSVs remain invalid.
