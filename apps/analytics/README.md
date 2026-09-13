@@ -1,9 +1,9 @@
 # Narra analytics service
 
-Stage 11 adds full-data chart preparation to the authenticated CSV workflow. It validates UTF-8 CSV
+The analytics service prepares full-data charts and insights for the authenticated CSV workflow. It validates UTF-8 CSV
 uploads, headers, duplicate columns, malformed records, actual byte and row limits,
 and returns no more than 100 preview rows plus metadata calculated from all rows.
-Files are not persisted yet.
+Persistence belongs to the Next.js/Supabase layer. This service keeps only bounded temporary processing state.
 
 ## Local development
 
