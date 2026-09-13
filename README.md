@@ -308,3 +308,10 @@ Supabase RLS. Saved snapshots reopen without the analytics service; applying a
 filter can restore the full CSV into its bounded processing cache. Apply the new
 migration in [Supabase setup](docs/supabase-setup.md). See the
 [persistence design](docs/stage-14-design.md). Hosted verification is pending.
+
+## Interactive demo
+
+Open `/demo` to explore five synthetic datasets without an account. Charts and
+insights come from the production Python pipeline; live filters require FastAPI.
+Download any CSV to create your own saved project. See
+[sample provenance](sample-data/README.md) and [Stage 15](docs/stage-15-verification.md).

@@ -22,8 +22,8 @@ export function SiteFooter() {
             More time understanding.
           </h2>
           <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Take a look at where Narra is headed. Start with the sample dashboard and imagine what
-            your data could tell you.
+            Start with a sample dashboard, then bring your own CSV to find useful statistics,
+            charts, and insights.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <AnalysisCta className="h-12" />
@@ -33,8 +33,8 @@ export function SiteFooter() {
               size="lg"
               className="h-12 border-primary/20 bg-transparent"
             >
-              <a href="#dashboard-preview">
-                Explore the preview <ArrowUpRight aria-hidden="true" />
+              <a href="/demo">
+                Try Demo Dataset <ArrowUpRight aria-hidden="true" />
               </a>
             </Button>
           </div>
@@ -60,7 +60,7 @@ export function SiteFooter() {
         </div>
         <div className="page-container mt-8 flex flex-wrap justify-between gap-3 border-t pt-6 text-xs text-muted-foreground">
           <p>© {new Date().getFullYear()} Narra</p>
-          <p>Made for curious minds. Preview release.</p>
+          <p>Made for curious minds. Narra V1.</p>
         </div>
       </footer>
     </>

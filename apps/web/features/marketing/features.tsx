@@ -15,13 +15,13 @@ const features = [
     icon: ScanSearch,
     title: "Get to know your dataset",
     description:
-      "Automatic column detection and missing-value checks will make the shape and quality of your data visible.",
+      "Automatic column detection and missing-value checks make the shape and quality of your data visible.",
   },
   {
     icon: ChartColumnIncreasing,
     title: "The right chart for the data",
     description:
-      "Recommendations will follow your column types and data quality, with a clear reason behind each chart.",
+      "Recommendations follow your column types and data quality, with a clear reason behind each chart.",
   },
   {
     icon: Lightbulb,
@@ -39,13 +39,13 @@ const features = [
     icon: Bookmark,
     title: "Pick up where you left off",
     description:
-      "Saved projects will keep your dataset and analysis together, ready for your next visit.",
+      "Saved projects keep your dataset and analysis together, ready for your next visit.",
   },
   {
     icon: Fingerprint,
     title: "A workspace of your own",
     description:
-      "Your account will have its own projects and datasets, with access controlled at the database level.",
+      "Your account has its own projects and datasets, with access controlled at the database level.",
   },
 ];
 
@@ -76,7 +76,7 @@ export function Features() {
         ))}
       </div>
       <p className="mt-7 text-center text-sm text-muted-foreground">
-        Planned for the first release. Designed around transparent calculations you can follow.
+        Designed around transparent calculations you can follow.
       </p>
     </section>
   );

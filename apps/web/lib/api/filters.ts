@@ -5,16 +5,22 @@ export async function applyDashboardFilters(
   projectId: string,
   filters: FilterRequest,
   signal: AbortSignal,
+  demoName?: string,
 ) {
   let response: Response;
   try {
-    response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/dataset/filter`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(filters),
-      cache: "no-store",
-      signal: AbortSignal.any([signal, AbortSignal.timeout(90000)]),
-    });
+    response = await fetch(
+      demoName
+        ? `/api/demo/${encodeURIComponent(demoName)}`
+        : `/api/projects/${encodeURIComponent(projectId)}/dataset/filter`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(filters),
+        cache: "no-store",
+        signal: AbortSignal.any([signal, AbortSignal.timeout(90000)]),
+      },
+    );
   } catch (error) {
     if (signal.aborted) throw error;
     throw new UploadError(

@@ -7,13 +7,13 @@ const steps = [
     icon: FileUp,
     title: "Bring your CSV",
     description:
-      "Start with a spreadsheet export. Narra will check the file and help you spot issues before the analysis begins.",
+      "Start with a spreadsheet export. Narra checks the file and helps you spot issues before the analysis begins.",
   },
   {
     icon: ScanLine,
     title: "Let the data lead",
     description:
-      "Column types, missing values, and useful statistics will guide which visualizations make sense for your dataset.",
+      "Column types, missing values, and useful statistics guide which visualizations make sense for your dataset.",
   },
   {
     icon: ChartNoAxesCombined,

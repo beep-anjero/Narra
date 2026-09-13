@@ -13,10 +13,12 @@ export function FilterPanel({
   projectId,
   analysis,
   onChange,
+  demoName,
 }: {
   projectId: string;
   analysis: DatasetAnalysis;
   onChange: (analysis: DatasetAnalysis) => void;
+  demoName?: string;
 }) {
   const id = useId();
   const [store] = useState(createDashboardStore);
@@ -66,7 +68,12 @@ export function FilterPanel({
     active.current = controller;
     store.setState({ busy: true, error: null });
     try {
-      const result = await applyDashboardFilters(projectId, request.data, controller.signal);
+      const result = await applyDashboardFilters(
+        projectId,
+        request.data,
+        controller.signal,
+        demoName,
+      );
       if (!controller.signal.aborted) {
         onChange(result);
         store.setState({

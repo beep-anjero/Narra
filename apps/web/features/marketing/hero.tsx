@@ -22,20 +22,20 @@ export function Hero() {
         <span className="text-primary">understandable dashboards.</span>
       </h1>
       <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        Bring the data. Find the story. Narra is being built to turn your CSV into useful charts,
-        clear statistics, and insights you can actually explain.
+        Bring the data. Find the story. Narra turns your CSV into useful charts, clear statistics,
+        and insights you can actually explain.
       </p>
       <div className="mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
         <AnalysisCta className="h-12 px-6" />
         <Button asChild variant="outline" size="lg" className="h-12 bg-white px-6">
-          <a href="#dashboard-preview">
+          <a href="/demo">
             <CirclePlay aria-hidden="true" />
             Try Demo Data
           </a>
         </Button>
       </div>
       <p className="mt-4 text-sm text-muted-foreground">
-        Preview release · CSV analysis and the interactive demo are coming soon.
+        CSV to dashboard · No AI required · Try the demo without an account.
       </p>
       <a
         href="#dashboard-preview"

@@ -213,8 +213,8 @@ export function DashboardPreview() {
         </div>
       </div>
       <p className="mx-auto mt-5 max-w-2xl text-center text-sm leading-relaxed text-muted-foreground">
-        An example of the view we’re building. These are illustrative values; CSV uploads, live
-        filters, and a working demo will arrive in a future release.
+        These illustrative values show the dashboard layout. Open the interactive demo to explore
+        charts, filters, and insights calculated from an actual sample CSV.
       </p>
     </section>
   );
