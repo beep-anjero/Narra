@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/api/saved-datasets", () => ({
   getSavedDataset: async () => null,
   persistDataset: async () => {},

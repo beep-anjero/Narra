@@ -3,6 +3,7 @@ import { filterRequestSchema } from "@/features/filters/contracts";
 import { readUploadBody } from "@/features/upload/read-body";
 import { UploadError } from "@/features/upload/contracts";
 import { demoCsv, filterDemo } from "@/lib/api/demo";
+import { isSameOrigin } from "@/lib/api/same-origin";
 export const runtime = "nodejs";
 export const maxDuration = 90;
 type Context = { params: Promise<{ name: string }> };
@@ -19,7 +20,7 @@ export async function GET(_request: Request, { params }: Context) {
 }
 export async function POST(request: Request, { params }: Context) {
   try {
-    if (request.headers.get("origin") !== new URL(request.url).origin)
+    if (!isSameOrigin(request))
       throw new UploadError("invalid_origin", "Open the Narra demo to apply filters.", 403);
     const name = demoNameSchema.safeParse((await params).name);
     if (!name.success)

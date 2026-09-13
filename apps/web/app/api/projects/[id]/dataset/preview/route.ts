@@ -1,4 +1,5 @@
 import { UploadError, validateUpload } from "@/features/upload/contracts";
+import { revalidatePath } from "next/cache";
 import { readUploadBody } from "@/features/upload/read-body";
 import { analyzeDataset, uploadLimit } from "@/lib/api/analytics";
 import { authorizeProject } from "@/lib/api/project-access";
@@ -35,6 +36,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const content = await readUploadBody(request, limit);
     const result = await analyzeDataset(content, name, mime, scope);
     await persistDataset(scope, content, name, result);
+    revalidatePath("/dashboard");
+    revalidatePath(`/project/${scope.projectId}`, "layout");
     return Response.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (error instanceof UploadError) return failure(error.status, error.code, error.message);

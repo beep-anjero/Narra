@@ -2,9 +2,10 @@ import "server-only";
 import { projectIdSchema } from "@/features/projects/schemas";
 import { UploadError } from "@/features/upload/contracts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isSameOrigin } from "./same-origin";
 
 export async function authorizeProject(request: Request, rawId: string) {
-  if (request.headers.get("origin") !== new URL(request.url).origin)
+  if (!isSameOrigin(request))
     throw new UploadError("invalid_origin", "Use your Narra project page for this request.", 403);
   const client = await createSupabaseServerClient(true);
   const { data, error } = await client.auth.getUser();

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { FileSpreadsheet, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { uploadDataset } from "@/lib/api/datasets";
@@ -24,6 +25,7 @@ export function CsvUploader({
   view?: "dashboard" | "data" | "insights";
 }) {
   const inputId = useId();
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [analysis, setAnalysis] = useState<DatasetAnalysis | null>(initialAnalysis);
   const [saved, setSaved] = useState(Boolean(initialAnalysis));
@@ -70,6 +72,7 @@ export function CsvUploader({
         setAnalysis(result);
         setSaved(true);
         setNotice("Dataset analyzed and saved. Your dashboard is ready.");
+        router.refresh();
       }
     } catch (cause) {
       if (controller.signal.aborted) setNotice("Upload canceled.");
@@ -152,8 +155,14 @@ export function CsvUploader({
               <p role="status" className="mb-2 text-sm">
                 {progress < 100
                   ? `Uploading dataset · ${progress}%`
-                  : "Analyzing dataset and preparing your dashboard…"}
+                  : "Validating, analyzing, and saving your dataset…"}
               </p>
+              {progress === 100 && (
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Reading columns · Detecting types · Calculating statistics · Finding patterns ·
+                  Generating charts · Saving your dashboard
+                </p>
+              )}
               <progress
                 className="h-2 w-full accent-primary"
                 value={progress}

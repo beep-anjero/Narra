@@ -23,7 +23,7 @@ export default async function RegisterPage({
       </p>
       <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Create your account</h1>
       <p className="mt-4 mb-8 text-base leading-relaxed text-muted-foreground">
-        Start with a workspace of your own. Save your projects and prepare for CSV analysis.
+        Create your private workspace. Upload a CSV and return to your saved analysis anytime.
       </p>
       <AuthForm mode="register" next={next} enabled={Boolean(getSupabaseConfig())} />
     </>

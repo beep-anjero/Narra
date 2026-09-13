@@ -8,6 +8,8 @@
     "pnpm": "11.19.0"
   },
   "scripts": {
+    "test:e2e": "pnpm --filter @narra/web test:e2e",
+    "test:e2e:lifecycle": "pnpm --filter @narra/web test:e2e:lifecycle",
     "dev": "pnpm --filter @narra/web dev",
     "build": "pnpm --filter @narra/web build",
     "start": "pnpm --filter @narra/web start",

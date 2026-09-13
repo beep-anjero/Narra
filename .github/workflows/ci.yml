@@ -1,0 +1,39 @@
+name: Narra checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Nonfunctional public config enables local form-validation tests; no auth requests use it.
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_validation_only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: 0.12.8
+          python-version: "3.13"
+      - run: pnpm install --frozen-lockfile
+      - run: uv sync --directory apps/analytics --locked
+      - run: pnpm check:all
+      - run: pnpm --filter @narra/web exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: public-demo-test-results
+          path: apps/web/test-results
+          retention-days: 7

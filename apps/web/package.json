@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:e2e": "playwright test --project=desktop --project=mobile",
+    "test:e2e:lifecycle": "playwright test --project=lifecycle",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -29,7 +31,9 @@
     "zustand": "5.0.15"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@electric-sql/pglite": "0.5.8",
+    "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "4.3.3",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",

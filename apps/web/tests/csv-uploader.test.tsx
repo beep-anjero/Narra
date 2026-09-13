@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 const upload = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/api/datasets", () => ({ uploadDataset: upload }));
 import { CsvUploader } from "@/features/upload/csv-uploader";

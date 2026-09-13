@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     template: "%s | Narra",
   },
   description:
-    "Meet Narra: a new way to turn CSV datasets into understandable dashboards. Explore the preview of automatic charts, statistics, and transparent insights.",
+    "Turn CSV datasets into understandable dashboards with automatic charts, statistics, transparent insights, and private saved projects.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
