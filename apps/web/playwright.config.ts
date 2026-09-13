@@ -33,11 +33,16 @@ export default defineConfig({
       env: { ANALYTICS_API_KEY: testKey },
     },
     {
-      command: "pnpm exec next start --hostname 127.0.0.1 --port 3100",
+      command: "pnpm start",
       url: "http://127.0.0.1:3100",
       reuseExistingServer: false,
       timeout: 120000,
-      env: { ANALYTICS_API_URL: "http://127.0.0.1:8107", ANALYTICS_API_KEY: testKey },
+      env: {
+        PORT: "3100",
+        HOSTNAME: "127.0.0.1",
+        ANALYTICS_API_URL: "http://127.0.0.1:8107",
+        ANALYTICS_API_KEY: testKey,
+      },
     },
   ],
 });

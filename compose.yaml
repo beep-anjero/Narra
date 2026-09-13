@@ -1,0 +1,28 @@
+services:
+  analytics:
+    build:
+      context: .
+      dockerfile: apps/analytics/Dockerfile
+    environment:
+      ANALYTICS_API_KEY: ${ANALYTICS_API_KEY:?Set a private analytics service key}
+      MAX_UPLOAD_SIZE_BYTES: ${MAX_UPLOAD_SIZE_BYTES:-20971520}
+      MAX_DATASET_ROWS: ${MAX_DATASET_ROWS:-100000}
+      CORS_ORIGINS: "[]"
+    expose: ["8000"]
+    restart: unless-stopped
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?Set the Supabase URL}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?Set the public Supabase key}
+    environment:
+      ANALYTICS_API_URL: http://analytics:8000
+      ANALYTICS_API_KEY: ${ANALYTICS_API_KEY:?Set a private analytics service key}
+      MAX_UPLOAD_SIZE_BYTES: ${MAX_UPLOAD_SIZE_BYTES:-20971520}
+    ports: ["${NARRA_PORT:-3000}:3000"]
+    depends_on:
+      analytics:
+        condition: service_healthy
+    restart: unless-stopped

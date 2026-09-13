@@ -7,6 +7,16 @@ export function chartOptions(
   chart: ChartData,
 ): EChartsOption {
   const { chart_type: type, x_column: x, y_column: y } = recommendation;
+  const year = String(chart.data[0]?.x ?? "").slice(0, 4);
+  const compactDates =
+    type === "line" &&
+    chart.data.length > 0 &&
+    chart.data.every(
+      (point) =>
+        typeof point.x === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(point.x) &&
+        point.x.startsWith(`${year}-`),
+    );
   const base: EChartsOption = {
     animation: false,
     color: ["#16705b", "#648dce", "#d19645", "#9b79b5", "#3a8999", "#bf6877", "#71834a", "#9a8271"],
@@ -37,11 +47,16 @@ export function chartOptions(
     grid: { left: 65, right: 25, top: 25, bottom: 90 },
     xAxis: {
       type: type === "scatter" ? "value" : "category",
-      name: x,
+      name: compactDates ? `${x} (${year})` : x,
       nameLocation: "middle",
       nameGap: 55,
       nameTruncate: { maxWidth: 230 },
-      axisLabel: { hideOverlap: true, width: 90, overflow: "truncate" },
+      axisLabel: {
+        hideOverlap: true,
+        width: 90,
+        overflow: "truncate",
+        ...(compactDates ? { formatter: (value: string | number) => String(value).slice(5) } : {}),
+      },
       ...(type !== "scatter" ? { data: chart.data.map((point) => String(point.x)) } : {}),
     },
     yAxis: {
