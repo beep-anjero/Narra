@@ -36,7 +36,7 @@ Optional `apps/analytics/.env`:
 ```dotenv
 CORS_ORIGINS=["http://127.0.0.1:3000","http://localhost:3000"]
 ANALYTICS_API_KEY=replace-with-the-same-random-32-plus-character-value-used-by-web
-MAX_UPLOAD_SIZE_BYTES=20971520
+MAX_UPLOAD_SIZE_BYTES=4194304
 MAX_DATASET_ROWS=100000
 ```
 
@@ -62,7 +62,7 @@ CSV must be UTF-8 (a BOM is accepted), contain a nonempty header, use unique nam
 and have consistent field counts. The parser checks every row before emitting the
 preview, including records after row 100. It keeps cell values as strings, preserving
 IDs such as `0012`, literal `NA`, and empty cells for the schema stage. The limits
-default to 20 MiB and 100,000 data rows and are configured server-side.
+default to 4 MiB and 100,000 data rows and are configured server-side.
 
 ## Schema analysis endpoint
 

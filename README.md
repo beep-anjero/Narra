@@ -7,9 +7,10 @@ charts, and explains patterns through deterministic calculations. It is a full-s
 analytics MVP, not a manual chart builder. There is no AI or LLM integration.
 
 Stages 1–17 are implemented. Local unit, database-policy, build, and public browser
-checks pass. **Hosted account → saved-dataset verification remains pending:** apply
-the datasets migration and configure a disposable test account before calling the
-hosted release verified. See [verification](docs/stage-17-verification.md).
+checks pass. The Supabase migrations are applied and the public Vercel/Render demo
+is verified. **Hosted account → saved-dataset lifecycle verification remains
+pending:** configure a disposable confirmed test account and run the lifecycle test.
+See [verification](docs/stage-17-verification.md).
 
 ## Screenshots
 
@@ -38,7 +39,7 @@ Actual Chromium captures of the public demo, calculated from synthetic sample CS
 - Private CSV Storage, relational metadata, saved dashboard snapshots, and cache restoration.
 - Responsive layouts, keyboard controls, loading/error states, and public demo datasets.
 
-V1 supports **one immutable CSV per project**, 20 MiB by default, 100,000 data rows,
+V1 supports **one immutable CSV per project**, 4 MiB by default, 100,000 data rows,
 and 200 columns. Filters are an exploration view; reopening restores the original
 saved analysis. Create another project for a different dataset.
 
@@ -53,8 +54,8 @@ without Supabase or FastAPI. **Applying filters requires FastAPI.** Download any
 sample and upload it into a private project to save your own copy. The landing
 page's illustrative preview is separate from this working demo.
 
+[Open the live demo](https://narra-web-bay.vercel.app/demo) ·
 [Sample provenance and regeneration](sample-data/README.md).
-No public deployment URL is claimed by this repository.
 
 ## Architecture
 
@@ -143,7 +144,7 @@ FastAPI reads **apps/analytics/.env**. A root `.env` is used only by Docker Comp
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Web          | Public key; RLS remains mandatory                      |
 | `ANALYTICS_API_URL`                    | Web server   | FastAPI base URL, normally `http://127.0.0.1:8000`     |
 | `ANALYTICS_API_KEY`                    | Both servers | Identical private random key, at least 32 characters   |
-| `MAX_UPLOAD_SIZE_BYTES`                | Both servers | Default 20 MiB; align Storage/proxy limits             |
+| `MAX_UPLOAD_SIZE_BYTES`                | Both servers | Default 4 MiB; align Storage/proxy limits              |
 | `MAX_DATASET_ROWS`                     | Analytics    | Default 100,000 data rows                              |
 | `CORS_ORIGINS`                         | Analytics    | JSON array; server-to-server calls do not require CORS |
 | `NUMERIC_PARSE_THRESHOLD`              | Analytics    | Default 0.9                                            |
@@ -163,11 +164,13 @@ apply these SQL files **in order** through SQL Editor or the Supabase CLI:
 1. `20260907000100_auth_profiles.sql`
 2. `20260908000100_projects.sql`
 3. `20260913000100_datasets.sql`
+4. `20260914000100_limit_uploads_for_vercel.sql`
 
 The third migration creates the private `datasets` bucket, dataset-related tables,
-transactional save function, and deletion guard. Change the bucket's file limit if
-raising the application's limit. Detailed instructions, confirmation links, and
-hosted verification steps are in [Supabase setup](docs/supabase-setup.md).
+transactional save function, and deletion guard. The fourth aligns the private
+bucket with the deployed 4 MiB request limit. Change the bucket and both services
+together if raising it. Detailed instructions, confirmation links, and hosted
+verification steps are in [Supabase setup](docs/supabase-setup.md).
 
 ## Analytics pipeline
 
@@ -234,15 +237,15 @@ docker compose build
 docker compose up -d
 ```
 
-Production needs HTTPS, a trusted Host-preserving proxy, suitable upload/time limits,
-Supabase Auth redirect configuration, and the migrations. Use one analytics worker;
-cache recovery supports restarts. **Docker execution and a hosted deployment have
-not been verified on this machine.** See [deployment guide](docs/deployment.md).
+The hosted frontend runs on [Vercel](https://narra-web-bay.vercel.app/) and the
+analytics service runs on Render. The public demo and cross-service filtering are
+verified. Production uses a 4 MiB upload limit to stay below Vercel's request ceiling.
+Docker execution remains unverified on this machine. See [deployment guide](docs/deployment.md).
 
 ## Roadmap
 
-V1 implementation ends here. Hosted lifecycle verification and deployment are the
-remaining release checks. No V2 functionality was added.
+V1 implementation ends here. The authenticated hosted lifecycle test is the remaining
+release check. No V2 functionality was added.
 
 Future work can add Excel, Google Sheets, dashboard customization, PDF reports,
 public sharing, or multiple datasets. Natural-language explanations and forecasting

@@ -36,11 +36,14 @@ untrusted `X-Forwarded-Host`. Configure Supabase Site URL and redirect URLs for 
 exact public origin, and verify email confirmation links there.
 
 The reverse proxy and hosting platform must accept the configured CSV request size
-(20 MiB by default) and allow enough time for analytics plus Storage/database work.
+(4 MiB by default) and allow enough time for analytics plus Storage/database work.
 Allow at least 90 seconds for these routes; larger or slow deployments may need more.
 Raise the Storage bucket limit together with the application limit. Platforms with
 smaller fixed request-body limits will reject uploads before Narra can validate them;
 use a suitable Node/container host rather than advertising unsupported limits.
+
+The hosted Vercel frontend uses 4 MiB because Vercel Functions cap request and
+response payloads at 4.5 MB. The remaining margin covers multipart form metadata.
 
 Keep analytics private where possible. Apply request/concurrency limits at the
 proxy, especially to public demo filtering, and monitor memory and processing time.

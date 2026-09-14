@@ -18,7 +18,7 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://127.0.0.1:3000", "http://localhost:3000"]
     )
     analytics_api_key: SecretStr | None = None
-    max_upload_size_bytes: int = Field(default=20971520, ge=1, le=104857600)
+    max_upload_size_bytes: int = Field(default=4194304, ge=1, le=104857600)
     max_dataset_rows: int = Field(default=100000, ge=1, le=1000000)
     numeric_parse_threshold: float = Field(default=0.9, ge=0.5, le=1)
     datetime_parse_threshold: float = Field(default=0.9, ge=0.5, le=1)

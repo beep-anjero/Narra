@@ -9,7 +9,7 @@ export function uploadLimit() {
     .int()
     .min(1)
     .max(104857600)
-    .parse(process.env.MAX_UPLOAD_SIZE_BYTES ?? 20971520);
+    .parse(process.env.MAX_UPLOAD_SIZE_BYTES ?? 4194304);
 }
 
 export async function analyzeDataset(

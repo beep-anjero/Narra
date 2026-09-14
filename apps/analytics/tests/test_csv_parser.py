@@ -9,7 +9,7 @@ def parse(content: bytes, **kwargs):
         content,
         kwargs.get("filename", "data.csv"),
         kwargs.get("mime", "text/csv"),
-        kwargs.get("max_bytes", 20971520),
+        kwargs.get("max_bytes", 4194304),
         kwargs.get("max_rows", 100000),
     )
 

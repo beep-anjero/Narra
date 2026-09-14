@@ -71,7 +71,7 @@ create policy "Own insights" on public.insights for all to authenticated
   with check (exists(select 1 from public.projects p where p.id = project_id and p.user_id = (select auth.uid())));
 
 insert into storage.buckets(id, name, public, file_size_limit, allowed_mime_types)
-values ('datasets','datasets',false,20971520,array['text/csv'])
+values ('datasets','datasets',false,4194304,array['text/csv'])
 on conflict (id) do update set public = false;
 
 create policy "Upload own project CSV" on storage.objects for insert to authenticated

@@ -151,10 +151,11 @@ and [user data and profile triggers](https://supabase.com/docs/guides/auth/manag
 ## Stage 14: saved datasets
 
 Apply `supabase/migrations/20260913000100_datasets.sql` after the first two
-migrations. It creates the private `datasets` bucket, four owner-only tables,
-transactional `save_analysis` function, and project deletion cleanup guard. The
-bucket defaults to 20 MiB; if changing `MAX_UPLOAD_SIZE_BYTES`, update its Storage
-limit too. No service-role key is needed by the application.
+migrations, followed by `20260914000100_limit_uploads_for_vercel.sql`. They create
+the private `datasets` bucket, four owner-only tables, transactional `save_analysis`
+function, project deletion cleanup guard, and the deployed 4 MiB Storage limit. If
+changing `MAX_UPLOAD_SIZE_BYTES`, update its Storage limit too. No service-role key
+is needed by the application.
 
 Uploads now persist automatically. Reopen a project to load its bounded saved
 analysis. Filtering restores processing state from its private CSV as needed.

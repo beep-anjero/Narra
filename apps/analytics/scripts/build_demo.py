@@ -91,7 +91,7 @@ def build():
         path.parent.mkdir(exist_ok=True)
         with path.open("w", newline="", encoding="utf-8") as file:
             csv.writer(file, lineterminator="\n").writerows(rows)
-        parsed = read_csv(path.read_bytes(), path.name, "text/csv", 20971520, 100000)
+        parsed = read_csv(path.read_bytes(), path.name, "text/csv", 4194304, 100000)
         columns = infer_schema(parsed.frame, settings)
         recommendations = recommend_visualizations(parsed.frame, columns)
         result = DatasetAnalysis(
