@@ -1,9 +1,9 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-const filterStatus = (page: import("@playwright/test").Page) =>
+const filterStatus = (page: Page) =>
   page.getByRole("region", { name: "Dashboard filters" }).getByRole("status");
 
 test("visitor opens demo, filters full dataset, resets, and downloads CSV", async ({ page }) => {
