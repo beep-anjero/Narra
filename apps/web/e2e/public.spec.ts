@@ -3,6 +3,9 @@ import AxeBuilder from "@axe-core/playwright";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+const filterStatus = (page: import("@playwright/test").Page) =>
+  page.getByRole("region", { name: "Dashboard filters" }).getByRole("status");
+
 test("visitor opens demo, filters full dataset, resets, and downloads CSV", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -18,9 +21,9 @@ test("visitor opens demo, filters full dataset, resets, and downloads CSV", asyn
     .split("\n")
     .slice(1);
   const expected = rows.filter((row) => Number(row.split(",")[3]) >= 500).length;
-  await expect(page.getByRole("status")).toContainText(`${expected} of 240`);
+  await expect(filterStatus(page)).toContainText(`${expected} of 240`);
   await page.getByRole("button", { name: "Reset filters" }).click();
-  await expect(page.getByRole("status")).toContainText("240 of 240");
+  await expect(filterStatus(page)).toContainText("240 of 240");
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("link", { name: "Download CSV" }).click();
   expect((await downloadPromise).suggestedFilename()).toBe("ecommerce-sales.csv");
@@ -36,13 +39,13 @@ test("handles zero matches and network failure without losing results", async ({
     page.getByText("No rows match the applied filters. Adjust the ranges or reset filters."),
   ).toBeVisible();
   await page.getByRole("button", { name: "Reset filters" }).click();
-  await expect(page.getByRole("status")).toContainText("240 of 240");
+  await expect(filterStatus(page)).toContainText("240 of 240");
   await page.route("**/api/demo/ecommerce-sales", (route) => route.abort());
   await page.getByRole("button", { name: "Apply filters" }).click();
   await expect(
     page.getByRole("region", { name: "Dashboard filters" }).getByRole("alert"),
   ).toContainText("Previous results remain unchanged");
-  await expect(page.getByRole("status")).toContainText("240 of 240");
+  await expect(filterStatus(page)).toContainText("240 of 240");
 });
 
 test("sample switching, accessibility, and responsive layout", async ({ page }, testInfo) => {
