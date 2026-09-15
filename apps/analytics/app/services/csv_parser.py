@@ -69,6 +69,11 @@ def read_csv(
     reader = csv.reader(io.StringIO(text, newline=""), strict=True)
     try:
         headers = next(reader, None)
+        # Some CSV download sites prepend source notes before the actual header.
+        # Ignore only leading single-field comments; comments inside the dataset
+        # remain ordinary data and must match the detected column count.
+        while headers and len(headers) == 1 and headers[0].lstrip().startswith("#"):
+            headers = next(reader, None)
         if not headers or any(not header.strip() for header in headers):
             raise DatasetError(
                 "missing_header",

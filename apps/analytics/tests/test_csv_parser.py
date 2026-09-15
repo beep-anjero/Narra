@@ -28,6 +28,18 @@ def test_utf8_bom_unicode_and_safe_filename():
     assert result.rows == [["José", "Zürich"]]
 
 
+def test_ignores_leading_source_comments_before_header():
+    result = parse(b"# Downloaded sample data\n# Source: example.test\nID,Name,Age\n1,Alice,10\n")
+    assert result.columns == ["ID", "Name", "Age"]
+    assert result.row_count == 1
+    assert result.rows == [["1", "Alice", "10"]]
+
+
+def test_comment_after_header_is_not_silently_ignored():
+    with pytest.raises(DatasetError, match="has 1 fields; expected 2"):
+        parse(b"Name,Age\n# not a leading comment\nAlice,10\n")
+
+
 def test_preview_limit_does_not_limit_full_file_validation():
     content = "Name,Value\n" + "Alice,1\n" * 150
     result = parse(content.encode())
