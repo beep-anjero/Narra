@@ -18,7 +18,8 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://127.0.0.1:3000", "http://localhost:3000"]
     )
     analytics_api_key: SecretStr | None = None
-    max_upload_size_bytes: int = Field(default=4194304, ge=1, le=104857600)
+    supabase_storage_origin: str | None = None
+    max_upload_size_bytes: int = Field(default=26214400, ge=1, le=104857600)
     max_dataset_rows: int = Field(default=100000, ge=1, le=1000000)
     numeric_parse_threshold: float = Field(default=0.9, ge=0.5, le=1)
     datetime_parse_threshold: float = Field(default=0.9, ge=0.5, le=1)
@@ -55,3 +56,13 @@ class Settings(BaseSettings):
             if normalized not in validated:
                 validated.append(normalized)
         return validated
+
+    @field_validator("supabase_storage_origin")
+    @classmethod
+    def validate_storage_origin(cls, origin: str | None) -> str | None:
+        if origin is None:
+            return None
+        url = TypeAdapter(AnyHttpUrl).validate_python(origin)
+        if url.scheme != "https" or url.path not in (None, "/") or url.query or url.fragment:
+            raise ValueError("SUPABASE_STORAGE_ORIGIN must be an HTTPS origin without a path")
+        return str(url).rstrip("/")

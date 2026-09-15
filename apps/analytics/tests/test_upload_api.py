@@ -39,6 +39,52 @@ def test_upload_and_analyze_returns_schema_from_full_dataset(upload_client):
     ]
 
 
+def test_stored_preview_downloads_only_from_configured_private_storage(monkeypatch):
+    content = b"Name,Score\nAlice,90\n"
+
+    class Download:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+        def read(self, _limit):
+            return content
+
+    monkeypatch.setattr(
+        "app.api.datasets.urllib.request.urlopen", lambda *_args, **_kwargs: Download()
+    )
+    settings = Settings(
+        _env_file=None,
+        analytics_api_key=KEY,
+        supabase_storage_origin="https://project.supabase.co",
+    )
+    payload = {
+        "signed_url": "https://project.supabase.co/storage/v1/object/sign/datasets/owner/file.csv?token=x",
+        "filename": "data.csv",
+        "file_size": len(content),
+    }
+    with TestClient(create_app(settings)) as client:
+        response = client.post(
+            "/api/v1/datasets/preview-stored",
+            json=payload,
+            headers={"Authorization": f"Bearer {KEY}"},
+        )
+        rejected = client.post(
+            "/api/v1/datasets/preview-stored",
+            json={
+                **payload,
+                "signed_url": "https://evil.example/storage/v1/object/sign/datasets/x",
+            },
+            headers={"Authorization": f"Bearer {KEY}"},
+        )
+    assert response.status_code == 200
+    assert response.json()["columns"] == ["Name", "Score"]
+    assert rejected.status_code == 422
+    assert rejected.json()["error"]["code"] == "invalid_storage_url"
+
+
 @pytest.mark.parametrize("authorization", ["", "Bearer wrong-key"])
 def test_requires_service_auth_before_processing(upload_client, authorization):
     response = upload_client.post(

@@ -9,6 +9,17 @@ from app.schemas.statistics import DatasetStatistics
 from app.schemas.visualization import VisualizationRecommendation
 
 
+class StoredDatasetRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    signed_url: str = Field(min_length=20, max_length=4096)
+    filename: str = Field(min_length=1, max_length=255)
+    file_size: int = Field(ge=1, le=104857600)
+    delimiter: Literal["auto", "comma", "semicolon", "tab"] = "auto"
+    header_row: int | None = Field(default=None, ge=1, le=100)
+    headerless: bool | None = None
+
+
 class DatasetPreview(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -20,6 +31,12 @@ class DatasetPreview(BaseModel):
     rows: list[list[str]]
     preview_limit: int = 100
     truncated: bool
+    delimiter: Literal[",", ";", "tab"] = ","
+    encoding: Literal["UTF-8", "Windows-1252"] = "UTF-8"
+    header_row: int = Field(default=1, ge=1)
+    generated_headers: bool = False
+    skipped_rows: int = Field(default=0, ge=0)
+    warnings: list[str] = Field(default_factory=list, max_length=8)
 
 
 class ColumnMetadata(BaseModel):

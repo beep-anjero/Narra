@@ -5,7 +5,7 @@ from app.settings import Settings
 
 
 def test_default_upload_limit_matches_hosting_boundary():
-    assert Settings(_env_file=None).max_upload_size_bytes == 4 * 1024 * 1024
+    assert Settings(_env_file=None).max_upload_size_bytes == 25 * 1024 * 1024
 
 
 @pytest.mark.parametrize(

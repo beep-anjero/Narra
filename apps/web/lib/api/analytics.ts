@@ -1,6 +1,11 @@
 import "server-only";
 import { z } from "zod";
-import { analysisSchema, uploadErrorSchema, UploadError } from "@/features/upload/contracts";
+import {
+  analysisSchema,
+  previewSchema,
+  uploadErrorSchema,
+  UploadError,
+} from "@/features/upload/contracts";
 import type { FilterRequest } from "@/features/filters/contracts";
 
 export function uploadLimit() {
@@ -9,7 +14,7 @@ export function uploadLimit() {
     .int()
     .min(1)
     .max(104857600)
-    .parse(process.env.MAX_UPLOAD_SIZE_BYTES ?? 4194304);
+    .parse(process.env.MAX_UPLOAD_SIZE_BYTES ?? 26214400);
 }
 
 export async function analyzeDataset(
@@ -17,6 +22,7 @@ export async function analyzeDataset(
   filename: string,
   mime: string,
   scope?: { userId: string; projectId: string },
+  options?: CsvImportOptions,
 ) {
   return analyticsRequest(
     "analyze",
@@ -24,8 +30,92 @@ export async function analyzeDataset(
     {
       "Content-Type": mime || "application/octet-stream",
       "X-Filename": encodeURIComponent(filename),
+      ...importHeaders(options),
     },
     scope,
+    analysisSchema,
+  );
+}
+
+export type CsvImportOptions = {
+  delimiter?: "auto" | "comma" | "semicolon" | "tab";
+  headerRow?: number;
+  headerless?: boolean;
+};
+
+function importHeaders(options?: CsvImportOptions) {
+  if (!options) return {};
+  return {
+    ...(options.delimiter && options.delimiter !== "auto"
+      ? { "X-CSV-Delimiter": options.delimiter }
+      : {}),
+    ...(options.headerRow ? { "X-CSV-Header-Row": String(options.headerRow) } : {}),
+    ...(options.headerless !== undefined ? { "X-CSV-Headerless": String(options.headerless) } : {}),
+  };
+}
+
+export async function previewDataset(
+  content: ArrayBuffer,
+  filename: string,
+  mime: string,
+  options?: CsvImportOptions,
+) {
+  const result = await analyticsRequest(
+    "preview",
+    content,
+    {
+      "Content-Type": mime || "application/octet-stream",
+      "X-Filename": encodeURIComponent(filename),
+      ...importHeaders(options),
+    },
+    undefined,
+    previewSchema,
+  );
+  return result;
+}
+
+export async function analyzeStoredDataset(
+  signedUrl: string,
+  filename: string,
+  size: number,
+  scope?: { userId: string; projectId: string },
+  options?: CsvImportOptions,
+) {
+  return analyticsRequest(
+    "analyze-stored",
+    JSON.stringify({
+      signed_url: signedUrl,
+      filename,
+      file_size: size,
+      delimiter: options?.delimiter ?? "auto",
+      header_row: options?.headerRow ?? null,
+      headerless: options?.headerless ?? null,
+    }),
+    { "Content-Type": "application/json" },
+    scope,
+    analysisSchema,
+  );
+}
+
+export async function previewStoredDataset(
+  signedUrl: string,
+  filename: string,
+  size: number,
+  options?: CsvImportOptions,
+) {
+  return analyticsRequest(
+    "preview-stored",
+    JSON.stringify({
+      signed_url: signedUrl,
+      filename,
+      file_size: size,
+      delimiter: options?.delimiter ?? "auto",
+      header_row: options?.headerRow ?? null,
+      headerless: options?.headerless ?? null,
+    }),
+    { "Content-Type": "application/json" },
+    undefined,
+    previewSchema,
   );
 }
 
@@ -38,14 +128,16 @@ export async function filterDataset(
     JSON.stringify(filters),
     { "Content-Type": "application/json" },
     scope,
+    analysisSchema,
   );
 }
 
-async function analyticsRequest(
+async function analyticsRequest<T>(
   endpoint: string,
   content: ArrayBuffer | string,
   headers: Record<string, string>,
   scope?: { userId: string; projectId: string },
+  schema?: z.ZodType<T>,
 ) {
   const config = z
     .object({ url: z.url().refine((value) => /^https?:\/\//.test(value)), key: z.string().min(32) })
@@ -65,7 +157,7 @@ async function analyticsRequest(
       method: "POST",
       body: content,
       cache: "no-store",
-      signal: AbortSignal.timeout(60000),
+      signal: AbortSignal.timeout(85000),
       headers: {
         Authorization: `Bearer ${config.data.key}`,
         ...headers,
@@ -99,8 +191,8 @@ async function analyticsRequest(
       503,
     );
   }
-  const result = analysisSchema.safeParse(payload);
-  if (!result.success)
+  const result = schema?.safeParse(payload);
+  if (!result?.success)
     throw new UploadError(
       "invalid_response",
       "The analytics service returned an invalid analysis. Please retry.",

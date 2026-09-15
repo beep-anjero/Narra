@@ -2,7 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { analysisSchema, UploadError, type DatasetAnalysis } from "@/features/upload/contracts";
-import { analyzeDataset, uploadLimit } from "./analytics";
+import { analyzeStoredDataset, uploadLimit } from "./analytics";
 
 type Scope = { userId: string; projectId: string };
 const bucket = "datasets";
@@ -31,24 +31,42 @@ export async function getSavedDataset(projectId: string) {
   return { ...data, analysis: result.data };
 }
 
-export async function persistDataset(
+export async function createDatasetUpload(scope: Scope, filename: string, size: number) {
+  if (size < 1 || size > uploadLimit())
+    throw new UploadError("file_too_large", "This CSV exceeds the upload limit.", 413);
+  const client = await createSupabaseServerClient(true);
+  const id = randomUUID();
+  const path = `${scope.userId}/${scope.projectId}/${id}.csv`;
+  const { data, error } = await client.storage.from(bucket).createSignedUploadUrl(path);
+  if (error || !data)
+    throw new UploadError(
+      "storage_unavailable",
+      "Narra could not prepare the private upload.",
+      503,
+    );
+  return { id, path, token: data.token, filename, size };
+}
+
+export async function signedDatasetUrl(path: string) {
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client.storage.from(bucket).createSignedUrl(path, 300);
+  if (error || !data)
+    throw new UploadError("storage_unavailable", "Narra could not read the private CSV.", 503);
+  return data.signedUrl;
+}
+
+export async function discardDatasetUpload(path: string) {
+  const client = await createSupabaseServerClient(true);
+  await client.storage.from(bucket).remove([path]);
+}
+
+export async function persistUploadedDataset(
   scope: Scope,
-  content: ArrayBuffer,
+  upload: { id: string; path: string; size: number },
   filename: string,
   analysis: DatasetAnalysis,
 ) {
   const client = await createSupabaseServerClient(true);
-  const id = randomUUID();
-  const path = `${scope.userId}/${scope.projectId}/${id}.csv`;
-  const uploaded = await client.storage
-    .from(bucket)
-    .upload(path, content, { contentType: "text/csv", upsert: false });
-  if (uploaded.error)
-    throw new UploadError(
-      "storage_unavailable",
-      "The CSV could not be saved to private storage. Check the datasets bucket and its upload limit, then retry.",
-      503,
-    );
   const snapshot = {
     ...analysis,
     filter_context: analysis.filter_context ? { ...analysis.filter_context, token: null } : null,
@@ -56,17 +74,17 @@ export async function persistDataset(
   try {
     const saved = await client.rpc("save_analysis", {
       p_project: scope.projectId,
-      p_dataset: id,
+      p_dataset: upload.id,
       p_filename: filename,
-      p_size: content.byteLength,
+      p_size: upload.size,
       p_analysis: snapshot,
     });
     if (saved.error) throw saved.error;
   } catch {
     // A timed-out RPC may have committed. Never delete its object without checking.
-    const check = await client.from("datasets").select("id").eq("id", id).maybeSingle();
+    const check = await client.from("datasets").select("id").eq("id", upload.id).maybeSingle();
     if (check.data) return;
-    if (!check.error) await client.storage.from(bucket).remove([path]);
+    if (!check.error) await client.storage.from(bucket).remove([upload.path]);
     throw new UploadError(
       "save_failed",
       "Narra could not confirm the saved analysis. Reopen this project before retrying; only one dataset is allowed per project.",
@@ -89,17 +107,12 @@ export async function restoreDataset(scope: Scope) {
       "This saved CSV exceeds the current processing limit. Increase the server limit to filter it.",
       413,
     );
-  const client = await createSupabaseServerClient();
-  const { data, error } = await client.storage.from(bucket).download(saved.storage_path);
-  if (error || !data)
-    throw new UploadError(
-      "storage_unavailable",
-      "Narra could not retrieve the saved CSV. Retry when private storage is available.",
-      503,
-    );
-  if (data.size > uploadLimit())
-    throw new UploadError("file_too_large", "The stored CSV exceeds the processing limit.", 413);
-  return analyzeDataset(await data.arrayBuffer(), saved.original_filename, "text/csv", scope);
+  return analyzeStoredDataset(
+    await signedDatasetUrl(saved.storage_path),
+    saved.original_filename,
+    saved.file_size,
+    scope,
+  );
 }
 
 export async function removeProjectFiles(scope: Scope) {

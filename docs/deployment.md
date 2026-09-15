@@ -35,15 +35,15 @@ unrecognized hostnames. Narra validates Origin against Host and deliberately ign
 untrusted `X-Forwarded-Host`. Configure Supabase Site URL and redirect URLs for the
 exact public origin, and verify email confirmation links there.
 
-The reverse proxy and hosting platform must accept the configured CSV request size
-(4 MiB by default) and allow enough time for analytics plus Storage/database work.
-Allow at least 90 seconds for these routes; larger or slow deployments may need more.
-Raise the Storage bucket limit together with the application limit. Platforms with
-smaller fixed request-body limits will reject uploads before Narra can validate them;
-use a suitable Node/container host rather than advertising unsupported limits.
+CSV files upload directly from the browser to private Supabase Storage. Vercel only
+authorizes the upload and passes a short-lived signed reference to analytics, so its
+function request-body limit does not cap CSV size. Keep `MAX_UPLOAD_SIZE_BYTES` aligned
+between both services and the Storage bucket. Apply the latest Storage-limit migration.
 
-The hosted Vercel frontend uses 4 MiB because Vercel Functions cap request and
-response payloads at 4.5 MB. The remaining margin covers multipart form metadata.
+Set `SUPABASE_STORAGE_ORIGIN` on analytics to the exact HTTPS Supabase project origin
+(normally the same as `NEXT_PUBLIC_SUPABASE_URL`). Render rejects signed links from
+other hosts and downloads at most the configured byte limit. The default is 25 MiB;
+load-test memory and execution time before raising it toward the 100 MiB hard ceiling.
 
 Keep analytics private where possible. Apply request/concurrency limits at the
 proxy, especially to public demo filtering, and monitor memory and processing time.

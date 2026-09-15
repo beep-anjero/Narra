@@ -1,11 +1,18 @@
 import secrets
-from urllib.parse import unquote
+import urllib.error
+import urllib.request
+from urllib.parse import unquote, urlsplit
 from uuid import UUID
 
 from fastapi import APIRouter, Request, Response
 from starlette.concurrency import run_in_threadpool
 
-from app.schemas.dataset import ColumnMetadata, DatasetAnalysis, DatasetPreview
+from app.schemas.dataset import (
+    ColumnMetadata,
+    DatasetAnalysis,
+    DatasetPreview,
+    StoredDatasetRequest,
+)
 from app.schemas.error import ErrorResponse
 from app.schemas.filters import FilterContext, FilterRequest
 from app.schemas.insight import DatasetInsights
@@ -71,6 +78,51 @@ async def _validated_upload(request: Request) -> tuple[bytes, str, str, Settings
     return bytes(content), filename, mime, settings
 
 
+def _download_stored(payload: StoredDatasetRequest, settings: Settings) -> bytes:
+    if not settings.supabase_storage_origin:
+        raise DatasetError(
+            "service_not_configured", "Private storage access is not configured.", 503
+        )
+    allowed = urlsplit(settings.supabase_storage_origin)
+    target = urlsplit(payload.signed_url)
+    if (
+        target.scheme != allowed.scheme
+        or target.netloc != allowed.netloc
+        or not target.path.startswith("/storage/v1/object/sign/datasets/")
+        or target.username is not None
+        or target.password is not None
+    ):
+        raise DatasetError("invalid_storage_url", "The private dataset link is invalid.")
+    try:
+        with urllib.request.urlopen(payload.signed_url, timeout=30) as response:  # noqa: S310
+            content = response.read(settings.max_upload_size_bytes + 1)
+    except (urllib.error.URLError, TimeoutError) as error:
+        raise DatasetError(
+            "storage_unavailable", "Narra could not retrieve the private CSV.", 503
+        ) from error
+    if len(content) > settings.max_upload_size_bytes or len(content) != payload.file_size:
+        raise DatasetError("file_too_large", "The stored CSV size is invalid.", 413)
+    return content
+
+
+async def _stored_request(request: Request) -> tuple[StoredDatasetRequest, bytes, Settings]:
+    settings = _service_settings(request)
+    try:
+        payload = StoredDatasetRequest.model_validate_json(await request.body())
+    except ValueError as error:
+        raise DatasetError("invalid_request", "The stored dataset request is invalid.") from error
+    content = await run_in_threadpool(_download_stored, payload, settings)
+    return payload, content, settings
+
+
+def _stored_options(payload: StoredDatasetRequest) -> dict:
+    return {
+        "delimiter_override": {"comma": ",", "semicolon": ";", "tab": "\t"}.get(payload.delimiter),
+        "header_row": payload.header_row,
+        "headerless": payload.headerless,
+    }
+
+
 @router.post(
     "/datasets/preview",
     response_model=DatasetPreview,
@@ -91,6 +143,35 @@ async def preview_dataset(request: Request, response: Response) -> DatasetPrevie
         mime,
         settings.max_upload_size_bytes,
         settings.max_dataset_rows,
+        delimiter_override={"comma": ",", "semicolon": ";", "tab": "\t"}.get(
+            request.headers.get("x-csv-delimiter", "")
+        ),
+        header_row=(
+            int(request.headers["x-csv-header-row"])
+            if request.headers.get("x-csv-header-row", "").isdigit()
+            else None
+        ),
+        headerless=(
+            request.headers.get("x-csv-headerless") == "true"
+            if request.headers.get("x-csv-headerless") in {"true", "false"}
+            else None
+        ),
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return result
+
+
+@router.post("/datasets/preview-stored", response_model=DatasetPreview, responses=ERROR_RESPONSES)
+async def preview_stored_dataset(request: Request, response: Response) -> DatasetPreview:
+    payload, content, settings = await _stored_request(request)
+    result = await run_in_threadpool(
+        parse_csv,
+        content,
+        payload.filename,
+        "text/csv",
+        settings.max_upload_size_bytes,
+        settings.max_dataset_rows,
+        **_stored_options(payload),
     )
     response.headers["Cache-Control"] = "no-store"
     return result
@@ -131,6 +212,41 @@ async def analyze_dataset(request: Request, response: Response) -> DatasetAnalys
     return result
 
 
+@router.post("/datasets/analyze-stored", response_model=DatasetAnalysis, responses=ERROR_RESPONSES)
+async def analyze_stored_dataset(request: Request, response: Response) -> DatasetAnalysis:
+    payload, content, settings = await _stored_request(request)
+    parsed = await run_in_threadpool(
+        read_csv,
+        content,
+        payload.filename,
+        "text/csv",
+        settings.max_upload_size_bytes,
+        settings.max_dataset_rows,
+        **_stored_options(payload),
+    )
+    metadata = await run_in_threadpool(infer_schema, parsed.frame, settings)
+    statistics = await run_in_threadpool(calculate_statistics, parsed.frame, metadata)
+    recommendations = await run_in_threadpool(recommend_visualizations, parsed.frame, metadata)
+    charts = await run_in_threadpool(prepare_chart_data, parsed.frame, recommendations)
+    insights = await run_in_threadpool(generate_insights, parsed.frame, metadata)
+    result = DatasetAnalysis(
+        preview=parsed.preview,
+        column_metadata=metadata,
+        statistics=statistics,
+        recommendations=recommendations,
+        charts=charts,
+        insights=insights,
+    )
+    scope = _scope(request)
+    if scope:
+        fields = await run_in_threadpool(filter_fields, parsed.frame, result)
+        token = request.app.state.analysis_cache.put(scope, parsed, result, fields)
+        if token:
+            result.filter_context = FilterContext(token=token, fields=fields)
+    response.headers["Cache-Control"] = "no-store"
+    return result
+
+
 async def _dataset_with_schema(request: Request) -> tuple[ParsedCsv, list[ColumnMetadata]]:
     content, filename, mime, settings = await _validated_upload(request)
     parsed = await run_in_threadpool(
@@ -140,6 +256,19 @@ async def _dataset_with_schema(request: Request) -> tuple[ParsedCsv, list[Column
         mime,
         settings.max_upload_size_bytes,
         settings.max_dataset_rows,
+        delimiter_override={"comma": ",", "semicolon": ";", "tab": "\t"}.get(
+            request.headers.get("x-csv-delimiter", "")
+        ),
+        header_row=(
+            int(request.headers["x-csv-header-row"])
+            if request.headers.get("x-csv-header-row", "").isdigit()
+            else None
+        ),
+        headerless=(
+            request.headers.get("x-csv-headerless") == "true"
+            if request.headers.get("x-csv-headerless") in {"true", "false"}
+            else None
+        ),
     )
     metadata = await run_in_threadpool(infer_schema, parsed.frame, settings)
     return parsed, metadata

@@ -40,6 +40,65 @@ def test_comment_after_header_is_not_silently_ignored():
         parse(b"Name,Age\n# not a leading comment\nAlice,10\n")
 
 
+@pytest.mark.parametrize(
+    "content",
+    [
+        b"\n\nName;Age;City\nAlice;10;Paris\n",
+        b"sep=;\nName;Age;City\nAlice;10;Paris\n",
+        b"Name\tAge\tCity\nAlice\t10\tParis\n",
+        b"Report title\nName,Age,City\nAlice,10,Paris\n",
+    ],
+)
+def test_detects_common_preambles_and_delimiters(content):
+    result = parse(content)
+    assert result.columns == ["Name", "Age", "City"]
+    assert result.rows == [["Alice", "10", "Paris"]]
+
+
+def test_accepts_windows_1252():
+    result = parse("Name,City\nAndré,Zürich\n".encode("windows-1252"))
+    assert result.rows == [["André", "Zürich"]]
+
+
+def test_generates_names_for_numeric_headerless_csv():
+    result = parse(b"1,2\n3,4\n")
+    assert result.columns == ["Column 1", "Column 2"]
+    assert result.rows == [["1", "2"], ["3", "4"]]
+
+
+def test_ignores_safe_trailing_notes():
+    result = parse(b"Name,Age\nAlice,10\n# source note\n")
+    assert result.rows == [["Alice", "10"]]
+
+
+def test_manual_header_row_handles_multirow_headings():
+    result = read_csv(
+        b"Student report,,\nName,Math,Science\nAlice,90,95\n",
+        "data.csv",
+        "text/csv",
+        1000,
+        100,
+        header_row=2,
+    )
+    assert result.preview.columns == ["Name", "Math", "Science"]
+    assert result.preview.rows == [["Alice", "90", "95"]]
+    assert result.preview.header_row == 2
+
+
+def test_manual_headerless_mode_handles_text_only_data():
+    result = read_csv(
+        b"Alice,Paris\nBob,London\n",
+        "data.csv",
+        "text/csv",
+        1000,
+        100,
+        headerless=True,
+    )
+    assert result.preview.columns == ["Column 1", "Column 2"]
+    assert result.preview.rows == [["Alice", "Paris"], ["Bob", "London"]]
+    assert result.preview.generated_headers
+
+
 def test_preview_limit_does_not_limit_full_file_validation():
     content = "Name,Value\n" + "Alice,1\n" * 150
     result = parse(content.encode())
@@ -65,11 +124,9 @@ def test_single_column_and_empty_quoted_rows():
         (b"A,A\n1,2", "duplicate_headers"),
         (b"A, A \n1,2", "duplicate_headers"),
         (b"A,\n1,2", "missing_header"),
-        (b"1,2\n3,4", "missing_header"),
         (b"A,B\n1", "malformed_record"),
         (b"A,B\n1,2,3", "malformed_record"),
         (b'A,B\n"unclosed,2', "malformed_csv"),
-        (b"A\n\xff", "unsupported_encoding"),
         (b"A\n\x00", "invalid_content"),
     ],
 )

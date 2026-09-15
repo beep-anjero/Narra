@@ -15,6 +15,8 @@ def test_openapi_documents_only_implemented_api(client: TestClient):
         "/api/v1/health",
         "/api/v1/datasets/preview",
         "/api/v1/datasets/analyze",
+        "/api/v1/datasets/preview-stored",
+        "/api/v1/datasets/analyze-stored",
         "/api/v1/datasets/statistics",
         "/api/v1/datasets/recommend-visualizations",
         "/api/v1/datasets/generate-insights",

@@ -15,6 +15,12 @@ export const previewSchema = z
     rows: z.array(z.array(z.string()).max(200)).max(100),
     preview_limit: z.literal(100),
     truncated: z.boolean(),
+    delimiter: z.enum([",", ";", "tab"]).optional(),
+    encoding: z.enum(["UTF-8", "Windows-1252"]).optional(),
+    header_row: z.number().int().positive().optional(),
+    generated_headers: z.boolean().optional(),
+    skipped_rows: z.number().int().nonnegative().optional(),
+    warnings: z.array(z.string()).max(8).optional(),
   })
   .refine(
     (value) =>

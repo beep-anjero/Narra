@@ -15,9 +15,14 @@ const m = vi.hoisted(() => ({
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: async () => ({ ...m, storage: { from: () => m } }),
 }));
-import { persistDataset, getSavedDataset, removeProjectFiles } from "@/lib/api/saved-datasets";
+import {
+  persistUploadedDataset,
+  getSavedDataset,
+  removeProjectFiles,
+} from "@/lib/api/saved-datasets";
 import type { DatasetAnalysis } from "@/features/upload/contracts";
 const scope = { userId: "owner", projectId: "project" };
+const upload = { id: "dataset-id", path: "owner/project/dataset-id.csv", size: 4 };
 const analysis: DatasetAnalysis = {
   preview: {
     filename: "data.csv",
@@ -49,23 +54,22 @@ beforeEach(() => {
   m.remove.mockResolvedValue({ error: null });
   m.maybeSingle.mockResolvedValue({ data: null, error: null });
 });
-it("uses generated storage paths and strips ephemeral cache tokens from the saved snapshot", async () => {
-  await persistDataset(scope, new ArrayBuffer(4), "../../sales.csv", analysis);
-  expect(m.upload.mock.calls[0]?.[0]).toMatch(/^owner\/project\/[0-9a-f-]+\.csv$/);
+it("persists the direct upload and strips ephemeral cache tokens from the saved snapshot", async () => {
+  await persistUploadedDataset(scope, upload, "../../sales.csv", analysis);
   expect(m.rpc.mock.calls[0]?.[1].p_analysis.filter_context.token).toBeNull();
 });
 it("cleans up a definitively failed save but preserves an ambiguous or committed save", async () => {
   m.rpc.mockResolvedValue({ error: { message: "failure" } });
-  await expect(persistDataset(scope, new ArrayBuffer(4), "data.csv", analysis)).rejects.toThrow(
+  await expect(persistUploadedDataset(scope, upload, "data.csv", analysis)).rejects.toThrow(
     /confirm/,
   );
   expect(m.remove).toHaveBeenCalledOnce();
   m.remove.mockClear();
   m.maybeSingle.mockResolvedValue({ data: null, error: { message: "offline" } });
-  await expect(persistDataset(scope, new ArrayBuffer(4), "data.csv", analysis)).rejects.toThrow();
+  await expect(persistUploadedDataset(scope, upload, "data.csv", analysis)).rejects.toThrow();
   expect(m.remove).not.toHaveBeenCalled();
   m.maybeSingle.mockResolvedValue({ data: { id: "committed" }, error: null });
-  await persistDataset(scope, new ArrayBuffer(4), "data.csv", analysis);
+  await persistUploadedDataset(scope, upload, "data.csv", analysis);
   expect(m.remove).not.toHaveBeenCalled();
 });
 it("validates persisted snapshots before rendering them", async () => {

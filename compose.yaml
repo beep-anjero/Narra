@@ -5,7 +5,8 @@ services:
       dockerfile: apps/analytics/Dockerfile
     environment:
       ANALYTICS_API_KEY: ${ANALYTICS_API_KEY:?Set a private analytics service key}
-      MAX_UPLOAD_SIZE_BYTES: ${MAX_UPLOAD_SIZE_BYTES:-4194304}
+      MAX_UPLOAD_SIZE_BYTES: ${MAX_UPLOAD_SIZE_BYTES:-26214400}
+      SUPABASE_STORAGE_ORIGIN: ${SUPABASE_STORAGE_ORIGIN:-}
       MAX_DATASET_ROWS: ${MAX_DATASET_ROWS:-100000}
       CORS_ORIGINS: "[]"
     expose: ["8000"]
@@ -20,7 +21,7 @@ services:
     environment:
       ANALYTICS_API_URL: http://analytics:8000
       ANALYTICS_API_KEY: ${ANALYTICS_API_KEY:?Set a private analytics service key}
-      MAX_UPLOAD_SIZE_BYTES: ${MAX_UPLOAD_SIZE_BYTES:-4194304}
+      MAX_UPLOAD_SIZE_BYTES: ${MAX_UPLOAD_SIZE_BYTES:-26214400}
     ports: ["${NARRA_PORT:-3000}:3000"]
     depends_on:
       analytics:

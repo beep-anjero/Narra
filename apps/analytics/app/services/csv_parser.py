@@ -16,12 +16,64 @@ CSV_MIME_TYPES = {
     "application/vnd.ms-excel",
     "application/octet-stream",
 }
+DELIMITERS = ",;\t"
 
 
 @dataclass(frozen=True)
 class ParsedCsv:
     preview: DatasetPreview
     frame: pd.DataFrame
+
+
+def _decode(content: bytes) -> tuple[str, str]:
+    for encoding in ("utf-8-sig", "windows-1252"):
+        try:
+            return content.decode(encoding), "UTF-8" if encoding == "utf-8-sig" else "Windows-1252"
+        except UnicodeDecodeError:
+            continue
+    raise DatasetError(
+        "unsupported_encoding",
+        "Narra could not read this file. Save it as UTF-8 or Windows-1252 CSV.",
+    )
+
+
+def _dialect_and_start(text: str) -> tuple[str, int]:
+    lines = text.splitlines(keepends=True)
+    start = 0
+    explicit: str | None = None
+    while start < len(lines):
+        stripped = lines[start].strip()
+        if not stripped or stripped.startswith("#"):
+            start += 1
+            continue
+        if stripped.lower().startswith("sep=") and len(stripped) == 5:
+            explicit = stripped[-1]
+            start += 1
+            continue
+        break
+    sample_lines = [
+        line
+        for line in lines[start : start + 25]
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    sample = "".join(sample_lines)
+    if not sample:
+        return explicit or ",", start
+    if explicit is not None and explicit in DELIMITERS:
+        return explicit, start
+    try:
+        return csv.Sniffer().sniff(sample, delimiters=DELIMITERS).delimiter, start
+    except csv.Error:
+        return ",", start
+
+
+def _looks_like_header(first: list[str], following: list[list[str]]) -> bool:
+    if not following:
+        return True
+    numeric = re.compile(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?")
+    if all(numeric.fullmatch(value.strip()) for value in first if value.strip()):
+        return False
+    return True
 
 
 def validate_file_metadata(filename: str, mime_type: str) -> str:
@@ -45,6 +97,9 @@ def read_csv(
     max_rows: int,
     *,
     preview_only: bool = False,
+    delimiter_override: str | None = None,
+    header_row: int | None = None,
+    headerless: bool | None = None,
 ) -> ParsedCsv:
     safe_name = validate_file_metadata(filename, mime_type)
     if len(content) > max_bytes:
@@ -55,25 +110,40 @@ def read_csv(
         raise DatasetError(
             "empty_file", "This CSV is empty. Choose a file with a header and data rows."
         )
-    try:
-        text = content.decode("utf-8-sig")
-    except UnicodeDecodeError as exc:
-        raise DatasetError(
-            "unsupported_encoding", "Narra could not read this encoding. Export the CSV as UTF-8."
-        ) from exc
+    text, encoding = _decode(content)
     if "\x00" in text:
         raise DatasetError(
             "invalid_content",
             "This file contains binary or unsupported text content. Export it as UTF-8 CSV.",
         )
-    reader = csv.reader(io.StringIO(text, newline=""), strict=True)
+    delimiter, start = _dialect_and_start(text)
+    if delimiter_override is not None and delimiter_override in DELIMITERS:
+        delimiter = delimiter_override
+    if header_row is not None:
+        start = header_row - 1
+    prepared = "".join(text.splitlines(keepends=True)[start:])
+    reader = csv.reader(io.StringIO(prepared, newline=""), delimiter=delimiter, strict=True)
     try:
-        headers = next(reader, None)
-        # Some CSV download sites prepend source notes before the actual header.
-        # Ignore only leading single-field comments; comments inside the dataset
-        # remain ordinary data and must match the detected column count.
-        while headers and len(headers) == 1 and headers[0].lstrip().startswith("#"):
-            headers = next(reader, None)
+        records = [row for row in reader if row]
+        while records and len(records[0]) == 1 and records[0][0].lstrip().startswith("#"):
+            records.pop(0)
+        if not records:
+            raise DatasetError(
+                "missing_header", "Narra could not find a header or any data rows in this CSV."
+            )
+        width = len(records[0])
+        # A title or source line sometimes appears above the real table.
+        while width == 1 and len(records) > 1 and len(records[1]) > 1:
+            records.pop(0)
+            width = len(records[0])
+        first = records.pop(0)
+        matching = [row for row in records if len(row) == width]
+        has_header = (
+            not headerless if headerless is not None else _looks_like_header(first, matching)
+        )
+        headers = first if has_header else [f"Column {index + 1}" for index in range(width)]
+        if not has_header:
+            records.insert(0, first)
         if not headers or any(not header.strip() for header in headers):
             raise DatasetError(
                 "missing_header",
@@ -87,25 +157,25 @@ def read_csv(
             )
         if len(set(headers)) != len(headers):
             raise DatasetError("duplicate_headers", "This CSV contains duplicate column names.")
-        # Numeric-only first records are almost certainly data, not meaningful headers.
-        # Text-only headerless CSV cannot be inferred reliably: first record is the contract.
-        if all(re.fullmatch(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?", h) for h in headers):
-            raise DatasetError(
-                "missing_header",
-                "Narra could not detect a valid header row. Add column names before your data.",
+        while (
+            records
+            and len(records[-1]) == 1
+            and (
+                records[-1][0].lstrip().startswith("#")
+                or records[-1][0].strip().lower().startswith(("note:", "source:"))
             )
+        ):
+            records.pop()
         row_count = 0
         normalized = io.StringIO(newline="")
         writer = csv.writer(normalized)
         writer.writerow(headers)
-        for row in reader:
-            if not row:  # Ignore physically blank records, not rows containing empty cells.
-                continue
+        for row in records:
             if len(row) != len(headers):
                 raise DatasetError(
                     "malformed_record",
-                    f"CSV record ending at line {reader.line_num} has {len(row)} fields; "
-                    f"expected {len(headers)}.",
+                    f"A CSV row has {len(row)} fields; expected {len(headers)}. "
+                    "Check for unescaped delimiters, broken quotes, or footer text.",
                 )
             row_count += 1
             if row_count > max_rows:
@@ -147,12 +217,29 @@ def read_csv(
         columns=headers,
         rows=frame.head(100).values.tolist(),
         truncated=row_count > 100,
+        delimiter="tab" if delimiter == "\t" else delimiter,
+        encoding=encoding,
+        header_row=start + 1,
+        generated_headers=not has_header,
+        skipped_rows=start,
+        warnings=(
+            ["Column names were generated because Narra treated the first row as data."]
+            if not has_header
+            else []
+        ),
     )
     return ParsedCsv(preview=preview, frame=frame)
 
 
 def parse_csv(
-    content: bytes, filename: str, mime_type: str, max_bytes: int, max_rows: int
+    content: bytes,
+    filename: str,
+    mime_type: str,
+    max_bytes: int,
+    max_rows: int,
+    **options,
 ) -> DatasetPreview:
     """Compatibility wrapper for the Stage 6 temporary-preview endpoint."""
-    return read_csv(content, filename, mime_type, max_bytes, max_rows, preview_only=True).preview
+    return read_csv(
+        content, filename, mime_type, max_bytes, max_rows, preview_only=True, **options
+    ).preview

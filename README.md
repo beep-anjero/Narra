@@ -34,7 +34,7 @@ other values are demonstration data, not Narra company or product metrics._
 
 - CSV files only; Excel and Google Sheets are not supported.
 - One immutable dataset per project; upload changes require a new project.
-- A default maximum file size of 4 MiB, 100,000 data rows, and 200 columns.
+- A default maximum file size of 25 MiB, 100,000 data rows, and 200 columns.
 - Filters are temporary exploration views; reopening a project restores the
   original saved analysis.
 - Charts are selected automatically and cannot yet be manually customized.

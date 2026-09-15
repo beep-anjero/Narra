@@ -3,7 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 const upload = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/api/datasets", () => ({ uploadDataset: upload }));
+const inspect = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/api/datasets", () => ({ uploadDataset: upload, inspectDataset: inspect }));
 import { CsvUploader } from "@/features/upload/csv-uploader";
 const analysis = {
   preview: {
@@ -35,8 +36,17 @@ const analysis = {
     },
   ],
 };
+const preparedUpload = {
+  id: "dataset-id",
+  path: "owner/project/dataset-id.csv",
+  token: "signed-token",
+  filename: "data.csv",
+  size: 20,
+};
 beforeEach(() => {
   upload.mockReset();
+  inspect.mockReset();
+  inspect.mockResolvedValue({ preview: analysis.preview, upload: preparedUpload });
 });
 it("rejects unsupported files before upload", async () => {
   const user = userEvent.setup({ applyAccept: false });
@@ -53,7 +63,9 @@ it("uploads and displays the real returned preview and detected schema", async (
     screen.getByLabelText("Or choose a CSV file"),
     new File(["ID,Name\n0012,Alice"], "data.csv", { type: "text/csv" }),
   );
-  await user.click(screen.getByRole("button", { name: "Validate CSV" }));
+  await user.click(screen.getByRole("button", { name: "Inspect CSV" }));
+  expect(await screen.findByText("Check before saving")).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Analyze and save" }));
   expect(await screen.findByRole("table", { name: /Preview of data.csv/ })).toHaveTextContent(
     "0012",
   );
@@ -64,15 +76,15 @@ it("uploads and displays the real returned preview and detected schema", async (
 });
 it("shows validation failures and permits a retry", async () => {
   const user = userEvent.setup();
-  upload.mockRejectedValue(new Error("This CSV contains duplicate column names."));
+  inspect.mockRejectedValue(new Error("This CSV contains duplicate column names."));
   render(<CsvUploader projectId="p" maxBytes={100} />);
   await user.upload(
     screen.getByLabelText("Or choose a CSV file"),
     new File(["A,A\n1,2"], "data.csv"),
   );
-  await user.click(screen.getByRole("button", { name: "Validate CSV" }));
+  await user.click(screen.getByRole("button", { name: "Inspect CSV" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("duplicate");
-  expect(screen.getByRole("button", { name: "Validate CSV" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Inspect CSV" })).toBeEnabled();
 });
 it("rejects multiple dropped files", () => {
   render(<CsvUploader projectId="p" maxBytes={100} />);
@@ -92,7 +104,8 @@ it("disables resubmission and shows actual upload progress", async () => {
   });
   render(<CsvUploader projectId="p" maxBytes={100} />);
   await user.upload(screen.getByLabelText("Or choose a CSV file"), new File(["A\n1"], "data.csv"));
-  await user.click(screen.getByRole("button", { name: "Validate CSV" }));
+  await user.click(screen.getByRole("button", { name: "Inspect CSV" }));
+  await user.click(screen.getByRole("button", { name: "Analyze and save" }));
   expect(screen.getByRole("button", { name: "Processing…" })).toBeDisabled();
   expect(screen.getByRole("progressbar")).toHaveAttribute("value", "45");
   await act(async () => finish(analysis));

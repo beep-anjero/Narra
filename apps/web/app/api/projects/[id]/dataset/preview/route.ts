@@ -1,9 +1,12 @@
-import { UploadError, validateUpload } from "@/features/upload/contracts";
+import { UploadError } from "@/features/upload/contracts";
 import { revalidatePath } from "next/cache";
-import { readUploadBody } from "@/features/upload/read-body";
-import { analyzeDataset, uploadLimit } from "@/lib/api/analytics";
+import { analyzeStoredDataset, uploadLimit } from "@/lib/api/analytics";
 import { authorizeProject } from "@/lib/api/project-access";
-import { getSavedDataset, persistDataset } from "@/lib/api/saved-datasets";
+import {
+  getSavedDataset,
+  persistUploadedDataset,
+  signedDatasetUrl,
+} from "@/lib/api/saved-datasets";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
@@ -23,19 +26,27 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         "dataset_exists",
         "This project already has a saved dataset. Create a new project for another CSV.",
       );
-    let name: string;
-    try {
-      name = decodeURIComponent(request.headers.get("x-filename") ?? "");
-    } catch {
-      return failure(422, "invalid_filename", "Choose a CSV with a valid filename.");
-    }
-    const mime = request.headers.get("content-type") ?? "";
-    const limit = uploadLimit();
-    const invalid = validateUpload({ name, type: mime, size: 1 }, limit);
-    if (invalid) return failure(415, "invalid_file", invalid);
-    const content = await readUploadBody(request, limit);
-    const result = await analyzeDataset(content, name, mime, scope);
-    await persistDataset(scope, content, name, result);
+    const payload = (await request.json()) as Record<string, unknown>;
+    const { path, id, filename, size } = payload;
+    if (
+      typeof path !== "string" ||
+      typeof id !== "string" ||
+      typeof filename !== "string" ||
+      typeof size !== "number" ||
+      path !== `${scope.userId}/${scope.projectId}/${id}.csv` ||
+      size > uploadLimit()
+    )
+      return failure(422, "invalid_upload", "The private upload reference is invalid.");
+    const delimiter = payload.delimiter;
+    const result = await analyzeStoredDataset(await signedDatasetUrl(path), filename, size, scope, {
+      delimiter:
+        delimiter === "comma" || delimiter === "semicolon" || delimiter === "tab"
+          ? delimiter
+          : "auto",
+      headerRow: typeof payload.headerRow === "number" ? payload.headerRow : undefined,
+      headerless: payload.headerless === true ? true : undefined,
+    });
+    await persistUploadedDataset(scope, { id, path, size }, filename, result);
     revalidatePath("/dashboard");
     revalidatePath(`/project/${scope.projectId}`, "layout");
     return Response.json(result, { headers: { "Cache-Control": "no-store" } });
